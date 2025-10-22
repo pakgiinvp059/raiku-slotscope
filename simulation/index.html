@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raiku SlotScope — Research Dashboard</title>
+  <title>Raiku SlotScope — Interactive Research Dashboard</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- HEADER -->
   <header>
-    <h1>🪐 Raiku SlotScope — Interactive Research Edition</h1>
-    <p class="subtitle">
-      Visual & Economic Simulation of Deterministic Execution on Solana (AOT vs JIT)
-    </p>
+    <div class="header-inner">
+      <div class="logo">🪐</div>
+      <div>
+        <h1>Raiku SlotScope — Research Dashboard</h1>
+        <p class="subtitle">Visual & Economic Simulation of Deterministic Execution on Solana (AOT vs JIT)</p>
+      </div>
+    </div>
   </header>
 
-  <!-- CONTROL PANEL -->
   <section id="controls">
     <button id="startBtn" class="btn-primary">🚀 Start Simulation</button>
     <label><input type="checkbox" id="modeAot" /> AOT mode</label>
@@ -28,16 +29,15 @@
       </select>
     </label>
     <label>TX Count: <input id="txCount" type="number" min="1" max="200" value="20" /></label>
+    <button id="exportBtn" class="btn-outline">📥 Export CSV</button>
     <button id="resetBtn" class="btn-outline">🔄 Reset</button>
   </section>
 
-  <!-- SLOT TIMELINE -->
   <section id="timeline-container">
     <h3>Slot Timeline</h3>
     <div id="timeline" class="grid-timeline"></div>
   </section>
 
-  <!-- BLUEPRINT -->
   <section id="blueprint">
     <h3>🧩 Deterministic Execution Blueprint</h3>
     <div class="pipeline">
@@ -47,25 +47,24 @@
       <div class="arrow">➡️</div>
       <div class="step">⏱ Slot Reservation<br><span>Guaranteed Order</span></div>
       <div class="arrow">➡️</div>
-      <div class="step" id="solana-step">
-        🪐 Solana Chain<br><span>Execution</span>
-        <div class="mini-metrics">
-          <canvas id="miniChart" width="120" height="60"></canvas>
-          <div class="mini-stats">
-            <div class="mini-box green">✅ <span id="execCount">0</span></div>
-            <div class="mini-box red">❌ <span id="failCount">0</span></div>
-            <div class="mini-box gold">🕓 <span id="pendCount">0</span></div>
-          </div>
-        </div>
-      </div>
+      <div class="step">🪐 Solana Chain<br><span>Execution</span></div>
       <div class="arrow">➡️</div>
       <div class="step">✅ TX Confirmed<br><span>Finality</span></div>
     </div>
   </section>
 
-  <!-- LOG + FOOTER -->
+  <section id="chart-section">
+    <h3>📊 Transaction Metrics</h3>
+    <canvas id="txChart"></canvas>
+    <div id="chart-legend">
+      <p><b>Legend:</b> ⚫ Total | 🟡 Pending | 🟢 Executed | 🔴 Failed</p>
+      <p class="note">X-axis: Slots (1–10) | Y-axis: Number of transactions per slot</p>
+    </div>
+  </section>
+
   <section id="metrics-section">
-    <h3>📈 Log</h3>
+    <h3>📈 Summary & Log</h3>
+    <div id="metrics" class="metrics"></div>
     <div id="log" class="logbox"></div>
   </section>
 
