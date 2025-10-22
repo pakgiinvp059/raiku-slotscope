@@ -1,138 +1,111 @@
-/* Raiku SlotScope v2 — Enhanced UI Edition */
-body {
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: linear-gradient(135deg, #f3f6ff 0%, #e8f0ff 100%);
-  color: #111;
-  margin: 0;
-  padding: 0;
+/* Enhanced UI for Raiku SlotScope */
+:root{
+  --bg1: #eaf4ff;
+  --accent1: #0078ff;
+  --accent2: #00d4ff;
+  --gold: #ffd166;
+  --green: #4cd37a;
+  --muted: #7b8aa5;
+}
+
+*{box-sizing:border-box}
+body{
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  margin:0;
+  background: linear-gradient(180deg,#f3f7ff 0%, #eef6fb 100%);
+  color:#0b1a2b;
 }
 
 header {
-  background: linear-gradient(90deg, #0052ff, #00d4ff);
-  color: white;
-  text-align: center;
-  padding: 40px 20px 25px 20px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  background: linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;
+  padding:28px 20px;
+  box-shadow: 0 6px 20px rgba(3,30,80,0.08);
+}
+.header-inner{ display:flex; align-items:center; gap:16px; max-width:1100px; margin:0 auto;}
+.logo{ font-size:34px; transform:translateY(2px) }
+header h1{ margin:0; font-size:28px }
+.tagline{ margin:4px 0 0; color:rgba(255,255,255,0.95); font-weight:500; font-size:14px }
+
+.container{ max-width:1100px; margin:28px auto; padding:0 18px; }
+
+.controls{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px; justify-content:center; }
+.inline{ display:flex; align-items:center; gap:8px; font-weight:600; color:var(--muted) }
+#txCount{ width:72px; padding:6px; border-radius:6px; border:1px solid #d6e6ff; }
+
+.btn-primary{
+  background: linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700;
+  box-shadow: 0 6px 18px rgba(3,30,80,0.12);
+}
+.btn-primary:hover{ transform:translateY(-2px) }
+.btn-outline{ border:1px solid #d0e9ff; background:white; padding:8px 12px; border-radius:8px; cursor:pointer }
+
+#board{ padding:6px 0 0; display:flex; justify-content:center; }
+.grid-timeline{
+  display:grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap:14px;
+  width:100%;
+  max-width:980px;
+  margin:0 auto;
 }
 
-header h1 {
-  font-size: 2.5rem;
-  margin: 0;
+.slot{
+  height:96px;
+  border-radius:10px;
+  background:#f6fbff;
+  border:2px solid rgba(127,165,255,0.4);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color:#08304a;
+  box-shadow: 0 6px 18px rgba(38,108,255,0.06);
+  transition: transform .28s ease, box-shadow .28s ease, background .28s;
+}
+.slot.reserved{
+  background:linear-gradient(180deg,#fff6d9,#fff8e6);
+  border-color:rgba(255,200,60,0.9);
+  transform:scale(1.06);
+  box-shadow: 0 10px 26px rgba(255,200,60,0.14);
+}
+.slot.executed{
+  background:linear-gradient(180deg,#dcffdf,#e9fff0);
+  border-color: rgba(60,200,120,0.9);
+  transform:scale(0.98);
+  box-shadow: 0 8px 22px rgba(60,200,120,0.12);
+}
+.slot.idle{ opacity:0.95 }
+
+.logbox{
+  margin-top:12px;
+  background:white;
+  border-radius:12px;
+  border:1px solid #e8f0ff;
+  padding:14px;
+  height:260px;
+  overflow:auto;
+  font-family: "Roboto Mono", monospace;
+  font-size:13px;
+  color:#123;
+  box-shadow: inset 0 2px 6px rgba(3,30,80,0.02);
 }
 
-header .tagline {
-  font-size: 1.1rem;
-  color: #e8f5ff;
-  margin-top: 10px;
+#metrics{ display:flex; gap:12px; justify-content:center; margin-bottom:12px; flex-wrap:wrap }
+.metric{
+  background:linear-gradient(180deg,#fff,#fbfeff);
+  border-radius:12px; padding:10px 14px; border:1px solid #e7f2ff; min-width:150px; text-align:center;
 }
+.metric .value{ font-size:18px; font-weight:800; color:#08304a }
+.metric .label{ font-size:12px; color:var(--muted) }
 
-header .brand {
-  color: #fff27a;
-  font-weight: bold;
-}
+footer{ text-align:center; color:#5d6b80; padding:18px 0; margin-top:18px }
 
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 30px 20px;
-  text-align: center;
+@media (max-width:1000px){
+  .grid-timeline{ grid-template-columns: repeat(5, 1fr) }
 }
-
-#controls {
-  margin-bottom: 25px;
-}
-
-#startBtn {
-  background: linear-gradient(90deg, #006aff, #00d8ff);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.3s ease;
-  font-weight: bold;
-}
-
-#startBtn:hover {
-  background: linear-gradient(90deg, #00d8ff, #006aff);
-  transform: scale(1.05);
-}
-
-#timeline {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.slot {
-  width: 90px;
-  height: 90px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #eaf1ff;
-  border: 2px solid #b5ccff;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #003366;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  transition: all 0.4s ease;
-}
-
-.slot.reserved {
-  background: #fff1c2;
-  border-color: #ffd84d;
-  transform: scale(1.08);
-  box-shadow: 0 4px 12px rgba(255,215,64,0.3);
-}
-
-.slot.executed {
-  background: #c8facc;
-  border-color: #4ed36a;
-  transform: scale(0.96);
-  box-shadow: 0 3px 8px rgba(0,180,0,0.3);
-}
-
-#logWrapper {
-  margin-top: 30px;
-  text-align: left;
-}
-
-#logWrapper h2 {
-  text-align: center;
-  color: #003366;
-}
-
-#log {
-  background: #fff;
-  padding: 15px;
-  border-radius: 10px;
-  border: 1px solid #dbe4ff;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
-  height: 250px;
-  overflow-y: auto;
-  font-family: monospace;
-  font-size: 14px;
-  color: #222;
-}
-
-footer {
-  text-align: center;
-  padding: 20px;
-  font-size: 0.9rem;
-  color: #333;
-  background: #f8faff;
-  margin-top: 40px;
-  border-top: 1px solid #e0e6f0;
-}
-footer a {
-  color: #0078ff;
-  text-decoration: none;
-}
-footer a:hover {
-  text-decoration: underline;
+@media (max-width:600px){
+  .grid-timeline{ grid-template-columns: repeat(2, 1fr) }
+  .slot{ height:84px; font-size:13px }
 }
