@@ -1,8 +1,0 @@
-body { font-family: Arial, sans-serif; background:#f7f8fb; color:#111; padding:20px; }
-.container { max-width:900px; margin:0 auto; }
-#timeline { display:flex; gap:8px; margin-top:20px; }
-.slot { width:70px; height:70px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:#e6eefc; border:2px solid #c7ddff; position:relative; }
-.slot.reserved { background:#ffe9c8; border-color:#ffd089; }
-.slot.executed { background:#dff7e1; border-color:#77d287; opacity:0.9; transform:scale(0.98); }
-#log { margin-top:16px; background:#fff; padding:10px; border-radius:6px; border:1px solid #eee; max-height:160px; overflow:auto; }
-button { padding:8px 12px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; }
