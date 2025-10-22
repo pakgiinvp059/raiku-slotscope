@@ -1,111 +1,83 @@
-/* Enhanced UI for Raiku SlotScope */
 :root{
-  --bg1: #eaf4ff;
-  --accent1: #0078ff;
-  --accent2: #00d4ff;
-  --gold: #ffd166;
-  --green: #4cd37a;
-  --muted: #7b8aa5;
+  --bg1:#f2f7ff;
+  --accent1:#0078ff;
+  --accent2:#00d4ff;
+  --green:#45d37a;
+  --gold:#ffd75f;
+  --red:#ff5a5a;
+  --muted:#6f8096;
 }
-
 *{box-sizing:border-box}
 body{
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-family:Inter, "Segoe UI", Arial, sans-serif;
   margin:0;
-  background: linear-gradient(180deg,#f3f7ff 0%, #eef6fb 100%);
+  background:linear-gradient(180deg,#f3f7ff 0%,#eef6fb 100%);
   color:#0b1a2b;
 }
-
-header {
-  background: linear-gradient(90deg,var(--accent1),var(--accent2));
+header{
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
   color:white;
-  padding:28px 20px;
-  box-shadow: 0 6px 20px rgba(3,30,80,0.08);
+  padding:30px 20px;
+  box-shadow:0 5px 16px rgba(3,30,80,0.12);
 }
-.header-inner{ display:flex; align-items:center; gap:16px; max-width:1100px; margin:0 auto;}
-.logo{ font-size:34px; transform:translateY(2px) }
-header h1{ margin:0; font-size:28px }
-.tagline{ margin:4px 0 0; color:rgba(255,255,255,0.95); font-weight:500; font-size:14px }
+.header-inner{display:flex;align-items:center;gap:14px;max-width:1100px;margin:0 auto;}
+.logo{font-size:32px;}
+header h1{margin:0;font-size:26px;}
+.tagline{margin:5px 0 0;font-size:14px;color:#e7faff;}
 
-.container{ max-width:1100px; margin:28px auto; padding:0 18px; }
-
-.controls{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px; justify-content:center; }
-.inline{ display:flex; align-items:center; gap:8px; font-weight:600; color:var(--muted) }
-#txCount{ width:72px; padding:6px; border-radius:6px; border:1px solid #d6e6ff; }
+.container{max-width:1100px;margin:30px auto;padding:0 18px;}
+.controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;}
+.controls label{font-weight:600;color:var(--muted)}
+#txCount{width:80px;padding:6px;border-radius:6px;border:1px solid #d6e6ff}
 
 .btn-primary{
-  background: linear-gradient(90deg,var(--accent1),var(--accent2));
-  color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700;
-  box-shadow: 0 6px 18px rgba(3,30,80,0.12);
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;
+  box-shadow:0 8px 24px rgba(3,30,80,0.12);
 }
-.btn-primary:hover{ transform:translateY(-2px) }
-.btn-outline{ border:1px solid #d0e9ff; background:white; padding:8px 12px; border-radius:8px; cursor:pointer }
+.btn-primary:hover{transform:translateY(-3px)}
+.btn-outline{border:1px solid #d0e9ff;background:white;padding:8px 14px;border-radius:8px;cursor:pointer}
 
-#board{ padding:6px 0 0; display:flex; justify-content:center; }
 .grid-timeline{
   display:grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap:14px;
-  width:100%;
+  grid-template-columns:repeat(10,1fr);
+  gap:12px;
   max-width:980px;
   margin:0 auto;
 }
-
 .slot{
   height:96px;
-  border-radius:10px;
-  background:#f6fbff;
-  border:2px solid rgba(127,165,255,0.4);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  color:#08304a;
-  box-shadow: 0 6px 18px rgba(38,108,255,0.06);
-  transition: transform .28s ease, box-shadow .28s ease, background .28s;
-}
-.slot.reserved{
-  background:linear-gradient(180deg,#fff6d9,#fff8e6);
-  border-color:rgba(255,200,60,0.9);
-  transform:scale(1.06);
-  box-shadow: 0 10px 26px rgba(255,200,60,0.14);
-}
-.slot.executed{
-  background:linear-gradient(180deg,#dcffdf,#e9fff0);
-  border-color: rgba(60,200,120,0.9);
-  transform:scale(0.98);
-  box-shadow: 0 8px 22px rgba(60,200,120,0.12);
-}
-.slot.idle{ opacity:0.95 }
-
-.logbox{
-  margin-top:12px;
-  background:white;
   border-radius:12px;
-  border:1px solid #e8f0ff;
-  padding:14px;
-  height:260px;
-  overflow:auto;
-  font-family: "Roboto Mono", monospace;
-  font-size:13px;
-  color:#123;
-  box-shadow: inset 0 2px 6px rgba(3,30,80,0.02);
+  background:#f6fbff;
+  border:2px solid rgba(127,165,255,0.35);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;color:#08304a;
+  transition:all .25s ease;
+  box-shadow:0 6px 16px rgba(3,30,80,0.04);
+  text-align:center;
 }
+.slot.reserved{background:#fff7d4;border-color:#ffd84d;transform:scale(1.06);box-shadow:0 10px 26px rgba(255,200,64,0.12)}
+.slot.executed{background:#d8ffd9;border-color:var(--green);transform:scale(0.98);box-shadow:0 8px 22px rgba(76,211,122,0.10)}
+.slot.failed{background:#ffd8d8;border-color:var(--red);transform:scale(0.98);box-shadow:0 8px 22px rgba(255,90,90,0.08)}
 
-#metrics{ display:flex; gap:12px; justify-content:center; margin-bottom:12px; flex-wrap:wrap }
-.metric{
-  background:linear-gradient(180deg,#fff,#fbfeff);
-  border-radius:12px; padding:10px 14px; border:1px solid #e7f2ff; min-width:150px; text-align:center;
-}
-.metric .value{ font-size:18px; font-weight:800; color:#08304a }
-.metric .label{ font-size:12px; color:var(--muted) }
+#blueprint{margin-top:20px;text-align:center;background:linear-gradient(180deg,#ffffff,#f4f8ff);border-radius:14px;padding:16px;box-shadow:0 6px 20px rgba(0,80,200,0.03)}
+#blueprint h3{color:#003366;margin-bottom:12px}
+.pipeline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+.step{background:white;border-radius:10px;padding:10px 12px;border:1px solid #dce9ff;box-shadow:0 4px 10px rgba(0,0,0,0.03);width:140px;min-height:72px;display:flex;flex-direction:column;justify-content:center;align-items:center;font-weight:700;transition:transform .3s ease,box-shadow .3s}
+.step span{font-weight:500;font-size:12px;color:#4d5b7a}
+.step:hover{transform:translateY(-6px);box-shadow:0 8px 18px rgba(0,80,200,0.12)}
+.arrow{font-size:18px;opacity:0.9}
 
-footer{ text-align:center; color:#5d6b80; padding:18px 0; margin-top:18px }
-
-@media (max-width:1000px){
-  .grid-timeline{ grid-template-columns: repeat(5, 1fr) }
+#charts{margin-top:18px;text-align:center;max-width:980px;margin-left:auto;margin-right:auto}
+#logWrapper{margin-top:22px;max-width:980px;margin-left:auto;margin-right:auto}
+.logbox{
+  background:white;border:1px solid #e6edff;border-radius:12px;padding:12px;height:260px;overflow:auto;
+  font-family:monospace;font-size:13px;box-shadow:inset 0 2px 6px rgba(3,30,80,0.02);color:#123;
 }
-@media (max-width:600px){
-  .grid-timeline{ grid-template-columns: repeat(2, 1fr) }
-  .slot{ height:84px; font-size:13px }
-}
+.metrics{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.metric{background:white;padding:10px 14px;border-radius:10px;border:1px solid #e8f0ff;min-width:130px;text-align:center}
+.metric .value{font-weight:800;font-size:18px;color:#0b1a2b}
+.metric .label{font-size:12px;color:var(--muted)}
+footer{text-align:center;padding:20px;color:#555;background:#f9fbff;margin-top:20px}
+@media(max-width:1000px){.grid-timeline{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:600px){.grid-timeline{grid-template-columns:repeat(2,1fr)}.slot{height:78px}}
