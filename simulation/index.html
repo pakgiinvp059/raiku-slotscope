@@ -2,20 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Raiku SlotScope - Simulation</title>
+  <title>Raiku SlotScope - Deterministic Execution Simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Raiku SlotScope — Slot Timeline</h1>
-    <div id="controls">
-      <button id="startBtn">Start Simulation</button>
-      <label><input type="checkbox" id="modeAot"> AOT mode</label>
-    </div>
-    <div id="timeline"></div>
-    <div id="log"></div>
-  </div>
+  <header>
+    <h1>🌌 Raiku SlotScope</h1>
+    <p class="tagline">
+      Visualizing how <strong>deterministic execution</strong> redefines transaction certainty on Solana —
+      powered by <span class="brand">Raiku</span>.
+    </p>
+  </header>
+
+  <main class="container">
+    <section id="controls">
+      <button id="startBtn">🚀 Start Simulation</button>
+      <label><input type="checkbox" id="modeAot"> <strong>AOT mode</strong> (Ahead-of-Time)</label>
+    </section>
+
+    <section id="timeline"></section>
+
+    <section id="logWrapper">
+      <h2>🧩 Simulation Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built for the <a href="https://earn.superteam.fun/opportunity/raiku-inevitable-ideathon-track" target="_blank">Raiku Inevitable Ideathon</a> | Open-source by <strong>@pakgiinvp059</strong></p>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>
