@@ -2,9 +2,9 @@
   --bg1:#f2f7ff;
   --accent1:#0078ff;
   --accent2:#00d4ff;
-  --green:#45d37a;
-  --gold:#ffd75f;
-  --red:#ff5a5a;
+  --green:#22bb55;
+  --gold:#ffd84d;
+  --red:#ff4444;
   --muted:#6f8096;
 }
 *{box-sizing:border-box}
@@ -38,28 +38,58 @@ header h1{margin:0;font-size:26px;}
 .btn-primary:hover{transform:translateY(-3px)}
 .btn-outline{border:1px solid #d0e9ff;background:white;padding:8px 14px;border-radius:8px;cursor:pointer}
 
+/* timeline grid */
 .grid-timeline{
   display:grid;
   grid-template-columns:repeat(10,1fr);
   gap:12px;
   max-width:980px;
-  margin:0 auto;
+  margin:0 auto 18px;
 }
 .slot{
-  height:96px;
+  height:110px;
   border-radius:12px;
   background:#f6fbff;
   border:2px solid rgba(127,165,255,0.35);
-  display:flex;align-items:center;justify-content:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   font-weight:700;color:#08304a;
   transition:all .25s ease;
   box-shadow:0 6px 16px rgba(3,30,80,0.04);
   text-align:center;
+  position:relative;
 }
-.slot.reserved{background:#fff7d4;border-color:#ffd84d;transform:scale(1.06);box-shadow:0 10px 26px rgba(255,200,64,0.12)}
-.slot.executed{background:#d8ffd9;border-color:var(--green);transform:scale(0.98);box-shadow:0 8px 22px rgba(76,211,122,0.10)}
-.slot.failed{background:#ffd8d8;border-color:var(--red);transform:scale(0.98);box-shadow:0 8px 22px rgba(255,90,90,0.08)}
+.slot .label { font-size:14px; margin-bottom:4px; }
+.slot .counter { font-family: monospace; font-size:12px; color:var(--muted); margin-top:8px; }
 
+/* states */
+.slot.idle{ background:#f6fbff; border-color:rgba(127,165,255,0.35); }
+.slot.pending{ background: #fff8e6; border-color: var(--gold); }
+.slot.reserved{ background:#fff7d4; border-color: var(--gold); transform:scale(1.04); }
+.slot.executed{ background:#e9ffe9; border-color: var(--green); transform:scale(0.98); }
+.slot.failed{ background:#ffe9e9; border-color: var(--red); transform:scale(0.98); }
+
+/* small badge counters under slot (arranged) */
+.slot .stats {
+  display:flex;
+  gap:8px;
+  margin-top:8px;
+}
+.badge {
+  padding:4px 6px;
+  border-radius:6px;
+  background:#fff;
+  border:1px solid #eef6ff;
+  font-weight:700;
+  font-size:11px;
+}
+.badge.exec{ color:var(--green); }
+.badge.fail{ color:var(--red); }
+.badge.pending{ color:#c47f00; }
+
+/* blueprint */
 #blueprint{margin-top:20px;text-align:center;background:linear-gradient(180deg,#ffffff,#f4f8ff);border-radius:14px;padding:16px;box-shadow:0 6px 20px rgba(0,80,200,0.03)}
 #blueprint h3{color:#003366;margin-bottom:12px}
 .pipeline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
@@ -68,6 +98,7 @@ header h1{margin:0;font-size:26px;}
 .step:hover{transform:translateY(-6px);box-shadow:0 8px 18px rgba(0,80,200,0.12)}
 .arrow{font-size:18px;opacity:0.9}
 
+/* charts & logs */
 #charts{margin-top:18px;text-align:center;max-width:980px;margin-left:auto;margin-right:auto}
 #logWrapper{margin-top:22px;max-width:980px;margin-left:auto;margin-right:auto}
 .logbox{
@@ -79,5 +110,6 @@ header h1{margin:0;font-size:26px;}
 .metric .value{font-weight:800;font-size:18px;color:#0b1a2b}
 .metric .label{font-size:12px;color:var(--muted)}
 footer{text-align:center;padding:20px;color:#555;background:#f9fbff;margin-top:20px}
+
 @media(max-width:1000px){.grid-timeline{grid-template-columns:repeat(5,1fr)}}
-@media(max-width:600px){.grid-timeline{grid-template-columns:repeat(2,1fr)}.slot{height:78px}}
+@media(max-width:600px){.grid-timeline{grid-template-columns:repeat(2,1fr)}.slot{height:90px}}
