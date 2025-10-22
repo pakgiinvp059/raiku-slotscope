@@ -1,5 +1,5 @@
-// Raiku SlotScope — Research Edition (Full)
-// Features: full TX run, AOT/JIT, scenarios, chart.js metrics, fee model, export CSV, blueprint animation
+// Raiku SlotScope — Interactive Research Edition (Per-slot counters + blueprint actions)
+// Copy & paste this entire file to simulation/script.js
 
 const timeline = document.getElementById('timeline');
 const log = document.getElementById('log');
@@ -14,40 +14,68 @@ const autorunChk = document.getElementById('autorun');
 let slots = [];
 let txRecords = [];
 let totalFee = 0;
+let simulationActive = false;
 
-// -------- init & UI ----------
+let ctx, txChart, txData;
+
+// ---------- helper ----------
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function addLog(t){ log.innerHTML = `[${new Date().toLocaleTimeString()}] ${t}<br>` + log.innerHTML; }
+
+// ---------- UI init ----------
 function initSlots(){
   timeline.innerHTML = '';
   slots = [];
   for(let i=1;i<=10;i++){
     const el = document.createElement('div');
-    el.className = 'slot';
-    el.innerHTML = `<div>Slot<br>${i}</div>`;
+    el.className = 'slot idle';
+    el.innerHTML = `
+      <div class="label">Slot ${i}</div>
+      <div class="counter">
+        <div class="stats">
+          <div class="badge exec" id="slot-${i}-exec">0</div>
+          <div class="badge pending" id="slot-${i}-pend">0</div>
+          <div class="badge fail" id="slot-${i}-fail">0</div>
+        </div>
+      </div>
+    `;
     el.id = `slot-${i}`;
     timeline.appendChild(el);
-    slots.push({id:i,el,state:'idle',tx:null});
+    // per-slot counters
+    slots.push({
+      id:i,
+      el,
+      state:'idle',
+      tx:null,
+      counts:{exec:0,pending:0,fail:0}
+    });
   }
   txRecords = [];
   totalFee = 0;
   log.innerHTML = '🟢 Ready.<br>';
   renderMetrics();
   resetChart();
+  resetBlueprint();
 }
 
-// small helper
-function addLog(t){ log.innerHTML = `[${new Date().toLocaleTimeString()}] ${t}<br>` + log.innerHTML; }
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-
-// -------- metrics & chart (Chart.js) ----------
-const ctx = document.getElementById('txChart').getContext('2d');
-const txData = { labels: [], datasets: [
-  { label:'Total', data: [], borderColor:'#777', fill:false },
-  { label:'Pending', data: [], borderColor:'#ffb600', fill:false },
-  { label:'Executed', data: [], borderColor:'#22bb55', fill:false },
-  { label:'Failed', data: [], borderColor:'#ff4444', fill:false }
-]};
-const txChart = new Chart(ctx, { type:'line', data: txData, options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ y:{ beginAtZero:true } } }});
+// ---------- Chart ----------
+function initChart(){
+  const canvas = document.getElementById('txChart');
+  if(!canvas) return;
+  ctx = canvas.getContext('2d');
+  txData = { labels:[], datasets:[
+    { label:'Total', data:[], borderColor:'#444', fill:false, tension:0.25 },
+    { label:'Pending', data:[], borderColor:'#ffb600', fill:false, tension:0.25 },
+    { label:'Executed', data:[], borderColor:'#22bb55', fill:false, tension:0.25 },
+    { label:'Failed', data:[], borderColor:'#ff4444', fill:false, tension:0.25 }
+  ]};
+  txChart = new Chart(ctx, { type:'line', data: txData, options:{
+    responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true}, x:{title:{display:true,text:'Step'}}}
+  }});
+}
+function resetChart(){ if(!txData||!txChart) return; txData.labels=[]; txData.datasets.forEach(d=>d.data=[]); txChart.update(); }
 function updateChart(total,pending,executed,failed){
+  if(!txChart) return;
   const step = txData.labels.length + 1;
   txData.labels.push(step);
   txData.datasets[0].data.push(total);
@@ -56,9 +84,8 @@ function updateChart(total,pending,executed,failed){
   txData.datasets[3].data.push(failed);
   txChart.update();
 }
-function resetChart(){ txData.labels=[]; txData.datasets.forEach(d=>d.data=[]); txChart.update(); }
 
-// -------- render metrics ----------
+// ---------- Metrics rendering ----------
 function renderMetrics(){
   const executed = txRecords.filter(t=>t.status==='executed').length;
   const failed = txRecords.filter(t=>t.status==='failed').length;
@@ -74,7 +101,7 @@ function renderMetrics(){
   updateChart(total,pending,executed,failed);
 }
 
-// -------- economic helpers ----------
+// ---------- Economic helpers ----------
 function calcFee(sc){
   if(sc==='normal') return 0.00012 + Math.random()*0.00008;
   if(sc==='congestion') return 0.0004 + Math.random()*0.0006;
@@ -82,175 +109,190 @@ function calcFee(sc){
   return 0.0001;
 }
 function calcDelay(sc){
-  if(sc==='normal') return 160 + Math.random()*160;
-  if(sc==='congestion') return 360 + Math.random()*560;
-  if(sc==='highfee') return 200 + Math.random()*280;
-  return 180;
+  if(sc==='normal') return 100 + Math.random()*120;
+  if(sc==='congestion') return 280 + Math.random()*500;
+  if(sc==='highfee') return 180 + Math.random()*260;
+  return 160;
 }
 function failProb(sc){
-  if(sc==='normal') return 0.06;
-  if(sc==='congestion') return 0.28;
-  if(sc==='highfee') return 0.03;
+  if(sc==='normal') return 0.05;
+  if(sc==='congestion') return 0.25;
+  if(sc==='highfee') return 0.02;
   return 0.1;
 }
 
-// -------- simulation core ----------
+// ---------- slot UI helpers ----------
+function setSlotState(slotObj, state){
+  // clear classes, set state and update visuals
+  slotObj.el.classList.remove('idle','pending','reserved','executed','failed');
+  slotObj.el.classList.add(state);
+  slotObj.state = state;
+}
+function incSlotCounter(slotId, type){
+  const s = slots.find(x=>x.id===slotId);
+  if(!s) return;
+  s.counts[type]++;
+  document.getElementById(`slot-${slotId}-exec`).textContent = s.counts.exec;
+  document.getElementById(`slot-${slotId}-pend`).textContent = s.counts.pending;
+  document.getElementById(`slot-${slotId}-fail`).textContent = s.counts.fail;
+}
+
+// ---------- Simulation core ----------
 async function simulate(){
-  const count = Math.max(1, Math.min(50, Number(txCountInput.value || 10)));
+  if(simulationActive) return;
+  simulationActive = true;
+  const count = Math.max(1, Math.min(200, Number(txCountInput.value || 10)));
   const sc = scenario.value;
   addLog(`Starting simulation: mode=${modeAot.checked?'AOT':'JIT'}, scenario=${sc}, count=${count}`);
-  // prepare txs
-  const txs = Array.from({length:count}, (_,i)=>({id:i+1, prefer: (modeAot.checked ? ((i % slots.length) + 1) : null), fee:0, status:'pending'}));
-  // AOT flow: try reserve slots first (round-robin)
+
+  // reset per-slot counters visually
+  slots.forEach(s=>{ s.counts = {exec:0,pending:0,fail:0}; document.getElementById(`slot-${s.id}-exec`).textContent='0'; document.getElementById(`slot-${s.id}-pend`).textContent='0'; document.getElementById(`slot-${s.id}-fail`).textContent='0'; setSlotState(s,'idle'); });
+
+  txRecords = [];
+  totalFee = 0;
+  renderMetrics();
+
+  const txs = Array.from({length:count},(_,i)=>({ id:i+1, prefer: modeAot.checked?((i%slots.length)+1):null, fee:0, status:'pending' }));
+
   if(modeAot.checked){
-    // reserve phase
+    // Reserve phase
     for(const tx of txs){
       const slotId = tx.prefer;
       const s = slots.find(x=>x.id===slotId && x.state==='idle');
       if(s){
-        s.state='reserved';
+        setSlotState(s,'reserved');
         s.tx = tx.id;
-        s.el.classList.add('reserved');
         tx.fee = calcFee(sc);
-        tx.status='reserved';
+        tx.status = 'reserved';
         txRecords.push({id:tx.id, slot:s.id, status:'reserved', fee:tx.fee, time:new Date().toISOString()});
-        addLog(`TX ${tx.id} reserved slot ${s.id} (fee ${tx.fee.toFixed(6)} SOL)`);
-        renderMetrics();
-        await sleep(120);
+        incSlotCounter(s.id,'pending'); // reserved shows pending count
+        addLog(`TX ${tx.id} reserved slot ${s.id}`);
       } else {
-        // couldn't reserve (already reserved by earlier tx) -> pending queue
-        tx.status='pending';
+        tx.status = 'pending';
         txRecords.push({id:tx.id, slot:null, status:'pending', fee:0, time:new Date().toISOString()});
-        addLog(`TX ${tx.id} failed to reserve (no idle slot)`);
+        addLog(`TX ${tx.id} pending (no reservation)`);
       }
+      renderMetrics();
+      await sleep(60);
     }
-    // execution phase: execute reserved slots in slot order
+    // Execute reserved slots in order
     for(const s of slots){
-      await sleep(220);
+      await sleep(140);
       if(s.state==='reserved'){
-        await executeTx(s.tx, s.id, sc);
-      }
-    }
-    // any pending txs attempt fill leftover idle slots
-    for(const tx of txs.filter(t=>t.status==='pending')){
-      await sleep(160);
-      const idle = slots.find(x=>x.state==='idle');
-      if(idle){
-        tx.fee = calcFee(sc);
-        txRecords.push({id:tx.id, slot:idle.id, status:'pending', fee:tx.fee, time:new Date().toISOString()});
-        addLog(`TX ${tx.id} assigned to slot ${idle.id} (fallback)`);
-        await sleep(180);
+        // success or fail according to probability
         const success = Math.random() > failProb(sc);
-        if(success) await executeTx(tx.id, idle.id, sc);
-        else {
-          addLog(`TX ${tx.id} failed at fallback slot ${idle.id}`);
-          txRecords.push({id:tx.id, slot:idle.id, status:'failed', fee:tx.fee, time:new Date().toISOString()});
-        }
-        renderMetrics();
-      } else {
-        addLog(`TX ${tx.id} dropped: no slot available`);
-        txRecords.push({id:tx.id, slot:null, status:'failed', fee:0, time:new Date().toISOString()});
-        renderMetrics();
+        if(success) await executeTx(s.tx, s.id, sc);
+        else await failTx(s.tx, s.id, sc);
       }
     }
   } else {
-    // JIT flow: sequential submission, occupy next idle slot
+    // JIT mode - assign to first idle slot
     for(const tx of txs){
-      await sleep(120);
       const idle = slots.find(x=>x.state==='idle');
       if(idle){
-        idle.state='pending';
+        setSlotState(idle,'pending');
         idle.tx = tx.id;
-        idle.el.style.border = '2px dashed #ffa1d0';
         tx.fee = calcFee(sc);
-        tx.status='pending';
+        tx.status = 'pending';
         txRecords.push({id:tx.id, slot:idle.id, status:'pending', fee:tx.fee, time:new Date().toISOString()});
-        addLog(`TX ${tx.id} submitted -> slot ${idle.id} (fee ${tx.fee.toFixed(6)} SOL)`);
+        incSlotCounter(idle.id,'pending');
+        addLog(`TX ${tx.id} submitted → slot ${idle.id}`);
         renderMetrics();
         await sleep(calcDelay(sc));
         const success = Math.random() > failProb(sc);
         if(success) await executeTx(tx.id, idle.id, sc);
-        else {
-          // fail and free slot
-          idle.state='idle';
-          idle.tx = null;
-          idle.el.classList.remove('reserved','executed');
-          idle.el.classList.add('failed');
-          addLog(`TX ${tx.id} failed at slot ${idle.id}`);
-          txRecords.push({id:tx.id, slot:idle.id, status:'failed', fee:tx.fee, time:new Date().toISOString()});
-          renderMetrics();
-          await sleep(90);
-          idle.el.classList.remove('failed');
-        }
+        else await failTx(tx.id, idle.id, sc);
       } else {
         addLog(`TX ${tx.id} dropped: no free slot`);
         txRecords.push({id:tx.id, slot:null, status:'failed', fee:0, time:new Date().toISOString()});
         renderMetrics();
       }
+      await sleep(60);
     }
   }
 
-  addLog(`✅ Simulation complete. Executed: ${txRecords.filter(t=>t.status==='executed').length}/${txs.length}`);
+  addLog(`✅ Simulation complete.`);
   renderMetrics();
+  simulationActive = false;
 }
 
-// execute helper
+// ---------- execution & fail ----------
 async function executeTx(txId, slotId, sc){
   const s = slots.find(x=>x.id===slotId);
   if(!s) return;
-  s.state='executed';
+  setSlotState(s,'executed');
   s.tx = txId;
-  s.el.classList.remove('reserved');
-  s.el.classList.remove('failed');
-  s.el.classList.add('executed');
-  // update record or append
-  const fee = calcFee(sc);
-  totalFee += (txRecords.find(r=>r.id===txId)?.fee) || fee;
-  // mark existing record
-  const recIdx = txRecords.findIndex(r=>r.id===txId);
-  if(recIdx>=0) txRecords[recIdx] = {...txRecords[recIdx], status:'executed', fee: txRecords[recIdx].fee || fee, time:new Date().toISOString()};
-  else txRecords.push({id:txId, slot:slotId, status:'executed', fee:fee, time:new Date().toISOString()});
-  addLog(`TX ${txId} executed in slot ${slotId} (fee ${ (txRecords.find(r=>r.id===txId)?.fee || fee).toFixed(6)} SOL)`);
+  incSlotCounter(slotId,'exec');
+  totalFee += calcFee(sc);
+  txRecords.push({id:txId, slot:slotId, status:'executed', fee:calcFee(sc), time:new Date().toISOString()});
+  addLog(`TX ${txId} ✅ executed in slot ${slotId}`);
   renderMetrics();
   await sleep(80);
+  // after execute, free slot to idle after small pause
+  await sleep(120);
+  if(s.state==='executed') setSlotState(s,'idle');
 }
 
-// -------- export CSV ----------
+async function failTx(txId, slotId, sc){
+  const s = slots.find(x=>x.id===slotId);
+  if(!s) return;
+  setSlotState(s,'failed');
+  s.tx = null;
+  incSlotCounter(slotId,'fail');
+  txRecords.push({id:txId, slot:slotId, status:'failed', fee:0, time:new Date().toISOString()});
+  addLog(`TX ${txId} ❌ failed in slot ${slotId}`);
+  renderMetrics();
+  await sleep(120);
+  if(s.state==='failed') setSlotState(s,'idle');
+}
+
+// ---------- export ----------
 function exportCSV(){
-  if(txRecords.length===0){ alert('No TX records'); return; }
+  if(txRecords.length===0){ alert('No TX records yet'); return; }
   const header = 'id,slot,status,fee,time\n';
-  const rows = txRecords.map(r => `${r.id},${r.slot||''},${r.status},${(r.fee||0).toFixed(6)},${r.time}`).join('\n');
-  const csv = header + rows;
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const rows = txRecords.map(r=>`${r.id},${r.slot||''},${r.status},${(r.fee||0).toFixed(6)},${r.time}`).join('\n');
+  const blob = new Blob([header+rows],{type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'raiku-slotscope-data.csv'; a.click();
-  URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href=url; a.download='raiku-slotscope-data.csv'; a.click(); URL.revokeObjectURL(url);
 }
 
-// -------- blueprint animation ----------
-function animateBlueprint(){
+// ---------- blueprint interaction ----------
+function resetBlueprint(){
   const steps = document.querySelectorAll('#blueprint .step');
-  let i = 0;
-  if(!steps || steps.length===0) return;
-  const loop = setInterval(()=>{
-    steps.forEach(s=>s.style.background='white');
-    steps.forEach(s=>s.style.boxShadow='0 4px 10px rgba(0,0,0,0.03)');
-    steps[i%steps.length].style.background='#e6f6ff';
-    steps[i%steps.length].style.boxShadow='0 10px 20px rgba(0,120,255,0.12)';
-    i++;
-    if(i>steps.length*3){ clearInterval(loop); setTimeout(animateBlueprint, 3000); }
-  }, 450);
+  steps.forEach(s=>{ s.style.background='white'; s.style.boxShadow='0 3px 8px rgba(0,0,0,0.05)'; });
 }
+function highlightStep(i){
+  resetBlueprint();
+  const steps = document.querySelectorAll('#blueprint .step');
+  if(steps[i]){ steps[i].style.background='#e7f5ff'; steps[i].style.boxShadow='0 10px 20px rgba(0,120,255,0.12)'; }
+}
+async function stepThroughBlueprint(){
+  const steps = document.querySelectorAll('#blueprint .step');
+  for(let i=0;i<steps.length;i++){
+    highlightStep(i);
+    await sleep(450);
+  }
+  resetBlueprint();
+}
+document.querySelectorAll('#blueprint .step').forEach((btn,index)=>{
+  btn.style.cursor='pointer';
+  btn.addEventListener('click', ()=>{
+    highlightStep(index);
+    addLog(`Blueprint: step ${index+1} (${btn.textContent.trim()}) triggered`);
+  });
+});
 
-// -------- events ----------
+// ---------- events ----------
 startBtn.addEventListener('click', async ()=>{
   initSlots();
+  resetChart();
   await simulate();
 });
 exportBtn.addEventListener('click', exportCSV);
+
 window.addEventListener('load', ()=>{
   initSlots();
-  animateBlueprint();
+  initChart();
   if(autorunChk && autorunChk.checked) startBtn.click();
+  stepThroughBlueprint();
 });
