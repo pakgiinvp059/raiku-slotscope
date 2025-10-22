@@ -1,8 +1,138 @@
-body { font-family: Arial, sans-serif; background:#f7f8fb; color:#111; padding:20px; }
-.container { max-width:900px; margin:0 auto; }
-#timeline { display:flex; gap:8px; margin-top:20px; }
-.slot { width:70px; height:70px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:#e6eefc; border:2px solid #c7ddff; position:relative; }
-.slot.reserved { background:#ffe9c8; border-color:#ffd089; }
-.slot.executed { background:#dff7e1; border-color:#77d287; opacity:0.9; transform:scale(0.98); }
-#log { margin-top:16px; background:#fff; padding:10px; border-radius:6px; border:1px solid #eee; max-height:160px; overflow:auto; }
-button { padding:8px 12px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; }
+/* Raiku SlotScope v2 — Enhanced UI Edition */
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(135deg, #f3f6ff 0%, #e8f0ff 100%);
+  color: #111;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: linear-gradient(90deg, #0052ff, #00d4ff);
+  color: white;
+  text-align: center;
+  padding: 40px 20px 25px 20px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+header .tagline {
+  font-size: 1.1rem;
+  color: #e8f5ff;
+  margin-top: 10px;
+}
+
+header .brand {
+  color: #fff27a;
+  font-weight: bold;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+#controls {
+  margin-bottom: 25px;
+}
+
+#startBtn {
+  background: linear-gradient(90deg, #006aff, #00d8ff);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  font-weight: bold;
+}
+
+#startBtn:hover {
+  background: linear-gradient(90deg, #00d8ff, #006aff);
+  transform: scale(1.05);
+}
+
+#timeline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.slot {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf1ff;
+  border: 2px solid #b5ccff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #003366;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  transition: all 0.4s ease;
+}
+
+.slot.reserved {
+  background: #fff1c2;
+  border-color: #ffd84d;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(255,215,64,0.3);
+}
+
+.slot.executed {
+  background: #c8facc;
+  border-color: #4ed36a;
+  transform: scale(0.96);
+  box-shadow: 0 3px 8px rgba(0,180,0,0.3);
+}
+
+#logWrapper {
+  margin-top: 30px;
+  text-align: left;
+}
+
+#logWrapper h2 {
+  text-align: center;
+  color: #003366;
+}
+
+#log {
+  background: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #dbe4ff;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+  height: 250px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 14px;
+  color: #222;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9rem;
+  color: #333;
+  background: #f8faff;
+  margin-top: 40px;
+  border-top: 1px solid #e0e6f0;
+}
+footer a {
+  color: #0078ff;
+  text-decoration: none;
+}
+footer a:hover {
+  text-decoration: underline;
+}
