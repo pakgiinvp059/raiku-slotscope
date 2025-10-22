@@ -1,178 +1,256 @@
-// Raiku SlotScope - Rich simulation: full 10+ TX, per-tx results, export CSV
+// Raiku SlotScope — Research Edition (Full)
+// Features: full TX run, AOT/JIT, scenarios, chart.js metrics, fee model, export CSV, blueprint animation
+
 const timeline = document.getElementById('timeline');
 const log = document.getElementById('log');
 const startBtn = document.getElementById('startBtn');
 const modeAot = document.getElementById('modeAot');
+const scenario = document.getElementById('scenario');
 const txCountInput = document.getElementById('txCount');
-const autorun = document.getElementById('autorun');
 const exportBtn = document.getElementById('exportBtn');
 const metricsDiv = document.getElementById('metrics');
+const autorunChk = document.getElementById('autorun');
 
 let slots = [];
-let txRecords = []; // {id, slot, status, time, detail}
+let txRecords = [];
+let totalFee = 0;
 
-function initSlots(slotCount = 10){
+// -------- init & UI ----------
+function initSlots(){
   timeline.innerHTML = '';
   slots = [];
-  for(let i=1;i<=slotCount;i++){
+  for(let i=1;i<=10;i++){
     const el = document.createElement('div');
-    el.className = 'slot idle';
-    el.id = `slot-${i}`;
+    el.className = 'slot';
     el.innerHTML = `<div>Slot<br>${i}</div>`;
+    el.id = `slot-${i}`;
     timeline.appendChild(el);
-    slots.push({id:i, el, state:'idle', tx:null});
+    slots.push({id:i,el,state:'idle',tx:null});
   }
   txRecords = [];
+  totalFee = 0;
+  log.innerHTML = '🟢 Ready.<br>';
   renderMetrics();
-  addLog(`Ready. Slots: ${slotCount}`, 'ℹ️');
+  resetChart();
 }
 
-function addLog(text, emoji='') {
-  const t = new Date().toLocaleTimeString();
-  const line = document.createElement('div');
-  line.textContent = `[${t}] ${text}`;
-  log.prepend(line);
-}
+// small helper
+function addLog(t){ log.innerHTML = `[${new Date().toLocaleTimeString()}] ${t}<br>` + log.innerHTML; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
+// -------- metrics & chart (Chart.js) ----------
+const ctx = document.getElementById('txChart').getContext('2d');
+const txData = { labels: [], datasets: [
+  { label:'Total', data: [], borderColor:'#777', fill:false },
+  { label:'Pending', data: [], borderColor:'#ffb600', fill:false },
+  { label:'Executed', data: [], borderColor:'#22bb55', fill:false },
+  { label:'Failed', data: [], borderColor:'#ff4444', fill:false }
+]};
+const txChart = new Chart(ctx, { type:'line', data: txData, options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ y:{ beginAtZero:true } } }});
+function updateChart(total,pending,executed,failed){
+  const step = txData.labels.length + 1;
+  txData.labels.push(step);
+  txData.datasets[0].data.push(total);
+  txData.datasets[1].data.push(pending);
+  txData.datasets[2].data.push(executed);
+  txData.datasets[3].data.push(failed);
+  txChart.update();
+}
+function resetChart(){ txData.labels=[]; txData.datasets.forEach(d=>d.data=[]); txChart.update(); }
+
+// -------- render metrics ----------
 function renderMetrics(){
-  metricsDiv.innerHTML = '';
   const executed = txRecords.filter(t=>t.status==='executed').length;
   const failed = txRecords.filter(t=>t.status==='failed').length;
   const pending = txRecords.filter(t=>t.status==='pending').length;
   const total = txRecords.length;
-  const createMetric = (label, value) => `<div class="metric"><div class="value">${value}</div><div class="label">${label}</div></div>`;
-  metricsDiv.innerHTML = createMetric('Executed', executed) + createMetric('Failed', failed) + createMetric('Pending', pending) + createMetric('Total TX', total);
+  metricsDiv.innerHTML = `
+    <div class="metric"><div class="value">${total}</div><div class="label">Total TX</div></div>
+    <div class="metric"><div class="value">${pending}</div><div class="label">Pending</div></div>
+    <div class="metric"><div class="value">${executed}</div><div class="label">Executed</div></div>
+    <div class="metric"><div class="value">${failed}</div><div class="label">Failed</div></div>
+    <div class="metric"><div class="value">${totalFee.toFixed(6)}</div><div class="label">Total Fee (SOL)</div></div>
+  `;
+  updateChart(total,pending,executed,failed);
 }
 
-function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+// -------- economic helpers ----------
+function calcFee(sc){
+  if(sc==='normal') return 0.00012 + Math.random()*0.00008;
+  if(sc==='congestion') return 0.0004 + Math.random()*0.0006;
+  if(sc==='highfee') return 0.001 + Math.random()*0.0015;
+  return 0.0001;
+}
+function calcDelay(sc){
+  if(sc==='normal') return 160 + Math.random()*160;
+  if(sc==='congestion') return 360 + Math.random()*560;
+  if(sc==='highfee') return 200 + Math.random()*280;
+  return 180;
+}
+function failProb(sc){
+  if(sc==='normal') return 0.06;
+  if(sc==='congestion') return 0.28;
+  if(sc==='highfee') return 0.03;
+  return 0.1;
+}
 
+// -------- simulation core ----------
 async function simulate(){
-  const txCount = Math.max(1, Math.min(50, Number(txCountInput.value || 10)));
-  addLog(`Simulation started. Mode: ${modeAot.checked ? 'AOT' : 'JIT'}`, '🚀');
-
-  // generate txs
-  const txs = Array.from({length: txCount}, (_, i) => ({ id: i+1, prefer: modeAot.checked ? ((i % slots.length) + 1) : null }));
-
-  // if AOT: reserve first (or selected) slots
+  const count = Math.max(1, Math.min(50, Number(txCountInput.value || 10)));
+  const sc = scenario.value;
+  addLog(`Starting simulation: mode=${modeAot.checked?'AOT':'JIT'}, scenario=${sc}, count=${count}`);
+  // prepare txs
+  const txs = Array.from({length:count}, (_,i)=>({id:i+1, prefer: (modeAot.checked ? ((i % slots.length) + 1) : null), fee:0, status:'pending'}));
+  // AOT flow: try reserve slots first (round-robin)
   if(modeAot.checked){
+    // reserve phase
     for(const tx of txs){
-      const s = slots.find(x => x.id === tx.prefer && x.state === 'idle');
+      const slotId = tx.prefer;
+      const s = slots.find(x=>x.id===slotId && x.state==='idle');
       if(s){
-        s.state = 'reserved';
+        s.state='reserved';
         s.tx = tx.id;
         s.el.classList.add('reserved');
-        txRecords.push({id:tx.id, slot:s.id, status:'reserved', time:new Date().toISOString(), detail:'Reserved AOT'});
-        addLog(`TX ${tx.id} reserved slot ${s.id} (AOT)`);
-        await sleep(160);
+        tx.fee = calcFee(sc);
+        tx.status='reserved';
+        txRecords.push({id:tx.id, slot:s.id, status:'reserved', fee:tx.fee, time:new Date().toISOString()});
+        addLog(`TX ${tx.id} reserved slot ${s.id} (fee ${tx.fee.toFixed(6)} SOL)`);
+        renderMetrics();
+        await sleep(120);
       } else {
-        // fallback if no idle slot
-        addLog(`TX ${tx.id} could not reserve (no idle slot)`, '⚠️');
-        txRecords.push({id:tx.id, slot:null, status:'pending', time:new Date().toISOString(), detail:'Reserve failed'});
+        // couldn't reserve (already reserved by earlier tx) -> pending queue
+        tx.status='pending';
+        txRecords.push({id:tx.id, slot:null, status:'pending', fee:0, time:new Date().toISOString()});
+        addLog(`TX ${tx.id} failed to reserve (no idle slot)`);
       }
     }
-    // execute in slot order
+    // execution phase: execute reserved slots in slot order
     for(const s of slots){
       await sleep(220);
-      if(s.state === 'reserved'){
-        await executeTx(s.tx, s.id);
+      if(s.state==='reserved'){
+        await executeTx(s.tx, s.id, sc);
+      }
+    }
+    // any pending txs attempt fill leftover idle slots
+    for(const tx of txs.filter(t=>t.status==='pending')){
+      await sleep(160);
+      const idle = slots.find(x=>x.state==='idle');
+      if(idle){
+        tx.fee = calcFee(sc);
+        txRecords.push({id:tx.id, slot:idle.id, status:'pending', fee:tx.fee, time:new Date().toISOString()});
+        addLog(`TX ${tx.id} assigned to slot ${idle.id} (fallback)`);
+        await sleep(180);
+        const success = Math.random() > failProb(sc);
+        if(success) await executeTx(tx.id, idle.id, sc);
+        else {
+          addLog(`TX ${tx.id} failed at fallback slot ${idle.id}`);
+          txRecords.push({id:tx.id, slot:idle.id, status:'failed', fee:tx.fee, time:new Date().toISOString()});
+        }
+        renderMetrics();
+      } else {
+        addLog(`TX ${tx.id} dropped: no slot available`);
+        txRecords.push({id:tx.id, slot:null, status:'failed', fee:0, time:new Date().toISOString()});
+        renderMetrics();
       }
     }
   } else {
-    // JIT: submit txs sequentially, occupy next idle slot
+    // JIT flow: sequential submission, occupy next idle slot
     for(const tx of txs){
-      await sleep(140);
-      const s = slots.find(x => x.state === 'idle');
-      if(s){
-        s.state = 'pending';
-        s.tx = tx.id;
-        s.el.style.border = '2px dashed #ffa1d0';
-        addLog(`TX ${tx.id} submitted → waiting for slot ${s.id}`);
-        txRecords.push({id:tx.id, slot:s.id, status:'pending', time:new Date().toISOString(), detail:'Submitted JIT'});
-        await sleep(180 + Math.random()*400);
-        // randomness to success/fail
-        const willSucceed = Math.random() > 0.08; // 92% success default
-        if(willSucceed){
-          await executeTx(tx.id, s.id);
-        } else {
-          // fail: drop
-          s.state = 'idle';
-          s.tx = null;
-          s.el.classList.remove('reserved');
-          s.el.classList.remove('executed');
-          s.el.classList.add('idle');
-          s.el.style.border = '';
-          addLog(`TX ${tx.id} dropped at slot ${s.id}`, '❌');
-          txRecords = txRecords.map(r => r.id === tx.id ? {...r, status:'failed', detail:'Dropped due to congestion'} : r);
+      await sleep(120);
+      const idle = slots.find(x=>x.state==='idle');
+      if(idle){
+        idle.state='pending';
+        idle.tx = tx.id;
+        idle.el.style.border = '2px dashed #ffa1d0';
+        tx.fee = calcFee(sc);
+        tx.status='pending';
+        txRecords.push({id:tx.id, slot:idle.id, status:'pending', fee:tx.fee, time:new Date().toISOString()});
+        addLog(`TX ${tx.id} submitted -> slot ${idle.id} (fee ${tx.fee.toFixed(6)} SOL)`);
+        renderMetrics();
+        await sleep(calcDelay(sc));
+        const success = Math.random() > failProb(sc);
+        if(success) await executeTx(tx.id, idle.id, sc);
+        else {
+          // fail and free slot
+          idle.state='idle';
+          idle.tx = null;
+          idle.el.classList.remove('reserved','executed');
+          idle.el.classList.add('failed');
+          addLog(`TX ${tx.id} failed at slot ${idle.id}`);
+          txRecords.push({id:tx.id, slot:idle.id, status:'failed', fee:tx.fee, time:new Date().toISOString()});
           renderMetrics();
+          await sleep(90);
+          idle.el.classList.remove('failed');
         }
       } else {
-        addLog(`TX ${tx.id} dropped: no free slot`, '❌');
-        txRecords.push({id:tx.id, slot:null, status:'failed', time:new Date().toISOString(), detail:'No slot'});
+        addLog(`TX ${tx.id} dropped: no free slot`);
+        txRecords.push({id:tx.id, slot:null, status:'failed', fee:0, time:new Date().toISOString()});
         renderMetrics();
       }
     }
   }
 
-  // final summary
-  await sleep(300);
-  const executed = txRecords.filter(t=>t.status==='executed').length;
-  addLog(`Simulation complete: ${executed}/${txs.length} executed.`);
+  addLog(`✅ Simulation complete. Executed: ${txRecords.filter(t=>t.status==='executed').length}/${txs.length}`);
   renderMetrics();
 }
 
-// executeTx: mark slot executed and record
-async function executeTx(txId, slotId){
-  const s = slots.find(x=>x.id === slotId);
+// execute helper
+async function executeTx(txId, slotId, sc){
+  const s = slots.find(x=>x.id===slotId);
   if(!s) return;
-  s.state = 'executed';
+  s.state='executed';
   s.tx = txId;
   s.el.classList.remove('reserved');
+  s.el.classList.remove('failed');
   s.el.classList.add('executed');
-  s.el.style.border = '2px solid rgba(76,211,122,0.8)';
-  addLog(`TX ${txId} executed in slot ${slotId}`, '✅');
-  // update txRecords
-  const recIndex = txRecords.findIndex(r=>r.id === txId);
-  if(recIndex >= 0){
-    txRecords[recIndex] = {...txRecords[recIndex], status:'executed', detail:'Included', time:new Date().toISOString()};
-  } else {
-    txRecords.push({id:txId, slot:slotId, status:'executed', time:new Date().toISOString(), detail:'Included'});
-  }
+  // update record or append
+  const fee = calcFee(sc);
+  totalFee += (txRecords.find(r=>r.id===txId)?.fee) || fee;
+  // mark existing record
+  const recIdx = txRecords.findIndex(r=>r.id===txId);
+  if(recIdx>=0) txRecords[recIdx] = {...txRecords[recIdx], status:'executed', fee: txRecords[recIdx].fee || fee, time:new Date().toISOString()};
+  else txRecords.push({id:txId, slot:slotId, status:'executed', fee:fee, time:new Date().toISOString()});
+  addLog(`TX ${txId} executed in slot ${slotId} (fee ${ (txRecords.find(r=>r.id===txId)?.fee || fee).toFixed(6)} SOL)`);
   renderMetrics();
+  await sleep(80);
 }
 
-// export csv
+// -------- export CSV ----------
 function exportCSV(){
-  if(txRecords.length===0){ alert('No TX records yet'); return; }
-  const header = 'txId,slot,status,time,detail\n';
-  const rows = txRecords.map(r => `${r.id},${r.slot||''},${r.status},${r.time},${(r.detail||'').replace(',',' ')}`).join('\n');
+  if(txRecords.length===0){ alert('No TX records'); return; }
+  const header = 'id,slot,status,fee,time\n';
+  const rows = txRecords.map(r => `${r.id},${r.slot||''},${r.status},${(r.fee||0).toFixed(6)},${r.time}`).join('\n');
   const csv = header + rows;
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = 'raiku-slotscope-tx-records.csv';
-  a.click();
+  a.href = url; a.download = 'raiku-slotscope-data.csv'; a.click();
   URL.revokeObjectURL(url);
 }
 
+// -------- blueprint animation ----------
+function animateBlueprint(){
+  const steps = document.querySelectorAll('#blueprint .step');
+  let i = 0;
+  if(!steps || steps.length===0) return;
+  const loop = setInterval(()=>{
+    steps.forEach(s=>s.style.background='white');
+    steps.forEach(s=>s.style.boxShadow='0 4px 10px rgba(0,0,0,0.03)');
+    steps[i%steps.length].style.background='#e6f6ff';
+    steps[i%steps.length].style.boxShadow='0 10px 20px rgba(0,120,255,0.12)';
+    i++;
+    if(i>steps.length*3){ clearInterval(loop); setTimeout(animateBlueprint, 3000); }
+  }, 450);
+}
+
+// -------- events ----------
 startBtn.addEventListener('click', async ()=>{
-  const count = Math.max(1, Math.min(50, Number(txCountInput.value || 10)));
-  // reset slots to chosen number (grid is fixed to 10 cols but we can create count slots visually)
-  initSlots(10);
-  txRecords = [];
-  renderMetrics();
+  initSlots();
   await simulate();
 });
-
 exportBtn.addEventListener('click', exportCSV);
-
-// auto-run on load?
 window.addEventListener('load', ()=>{
-  initSlots(10);
-  if(autorun.checked){
-    startBtn.click();
-  }
+  initSlots();
+  animateBlueprint();
+  if(autorunChk && autorunChk.checked) startBtn.click();
 });
-
-// initial
-initSlots(10);
