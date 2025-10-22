@@ -1,4 +1,4 @@
-// Raiku SlotScope — Fixed version (slots 1–10 active, compact chart, correct axis)
+// Raiku SlotScope — Compact MiniChart Version
 
 let slots = [];
 let txRecords = [];
@@ -6,20 +6,22 @@ let totalFee = 0;
 
 const timeline = document.getElementById("timeline");
 const log = document.getElementById("log");
-const metricsDiv = document.getElementById("metrics");
+const metricsMini = {
+  exec: document.getElementById("execCount"),
+  fail: document.getElementById("failCount"),
+  pend: document.getElementById("pendCount"),
+};
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
-const exportBtn = document.getElementById("exportBtn");
 const scenarioSel = document.getElementById("scenario");
 const modeAot = document.getElementById("modeAot");
 const txCountInput = document.getElementById("txCount");
 
-let ctx, txChart;
+let miniChart, ctxMini;
 
 function addLog(t) {
   log.innerHTML = `[${new Date().toLocaleTimeString()}] ${t}<br>` + log.innerHTML;
 }
-
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -30,26 +32,15 @@ function initSlots() {
   for (let i = 1; i <= 10; i++) {
     const el = document.createElement("div");
     el.className = "slot";
-    el.id = "slot-" + i;
-    el.innerHTML = `
-      <div>Slot ${i}</div>
-      <div class="stats">
-        <div class="badge exec" id="slot-${i}-exec">0</div>
-        <div class="badge pending" id="slot-${i}-pend">0</div>
-        <div class="badge fail" id="slot-${i}-fail">0</div>
-      </div>`;
+    el.innerHTML = `Slot ${i}`;
     timeline.appendChild(el);
-    slots.push({
-      id: i,
-      el,
-      counts: { exec: 0, pend: 0, fail: 0 },
-      state: "idle",
-    });
+    slots.push({ id: i, el, state: "idle" });
   }
   txRecords = [];
   totalFee = 0;
-  renderMetrics();
-  resetChart();
+  updateMiniStats(0, 0, 0);
+  resetMiniChart();
+  addLog("🟢 Ready.");
 }
 
 function setSlotState(slot, state) {
@@ -58,102 +49,81 @@ function setSlotState(slot, state) {
   slot.state = state;
 }
 
-function incSlot(slot, type) {
-  slot.counts[type]++;
-  document.getElementById(`slot-${slot.id}-${type}`).textContent =
-    slot.counts[type];
-}
-
-function renderMetrics() {
-  const executed = txRecords.filter((x) => x.status === "executed").length;
-  const failed = txRecords.filter((x) => x.status === "failed").length;
-  const total = txRecords.length;
-  metricsDiv.innerHTML = `
-    <div class="metric"><div class="value">${total}</div><div class="label">Total TX</div></div>
-    <div class="metric"><div class="value">${executed}</div><div class="label">Executed</div></div>
-    <div class="metric"><div class="value">${failed}</div><div class="label">Failed</div></div>
-    <div class="metric"><div class="value">${totalFee.toFixed(
-      5
-    )}</div><div class="label">Total Fee (SOL)</div></div>
-  `;
-}
-
-function resetChart() {
-  if (!txChart) return;
-  txChart.data.labels = [];
-  txChart.data.datasets.forEach((d) => (d.data = []));
-  txChart.update();
-}
-
-function initChart() {
-  const canvas = document.getElementById("txChart");
-  ctx = canvas.getContext("2d");
-  txChart = new Chart(ctx, {
+function initMiniChart() {
+  ctxMini = document.getElementById("miniChart").getContext("2d");
+  miniChart = new Chart(ctxMini, {
     type: "line",
     data: {
       labels: [],
       datasets: [
-        { label: "Total", borderColor: "#333", data: [] },
-        { label: "Pending", borderColor: "#ffb600", data: [] },
         { label: "Executed", borderColor: "#22bb55", data: [] },
         { label: "Failed", borderColor: "#ff4444", data: [] },
       ],
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      aspectRatio: 2,
-      plugins: { legend: { position: "bottom" } },
+      responsive: false,
+      plugins: { legend: { display: false } },
       scales: {
-        x: { title: { display: true, text: "Slot (1–10)" } },
-        y: { beginAtZero: true, title: { display: true, text: "TX Count" } },
+        x: { display: false },
+        y: { display: false },
       },
     },
   });
 }
 
-function updateChart(slotId, total, executed, failed) {
-  txChart.data.labels.push("Slot " + slotId);
-  txChart.data.datasets[0].data.push(total);
-  txChart.data.datasets[1].data.push(total - executed - failed);
-  txChart.data.datasets[2].data.push(executed);
-  txChart.data.datasets[3].data.push(failed);
-  txChart.update();
+function resetMiniChart() {
+  if (!miniChart) return;
+  miniChart.data.labels = [];
+  miniChart.data.datasets.forEach((d) => (d.data = []));
+  miniChart.update();
+}
+
+function updateMiniStats(exec, fail, pend) {
+  metricsMini.exec.textContent = exec;
+  metricsMini.fail.textContent = fail;
+  metricsMini.pend.textContent = pend;
+}
+
+function updateMiniChart(slot, exec, fail) {
+  miniChart.data.labels.push(slot);
+  miniChart.data.datasets[0].data.push(exec);
+  miniChart.data.datasets[1].data.push(fail);
+  miniChart.update();
 }
 
 async function simulate() {
   const totalTx = Number(txCountInput.value);
-  const sc = scenarioSel.value;
-  const mode = modeAot.checked ? "AOT" : "JIT";
-
-  addLog(`Simulation start (${mode}, ${sc}, TX=${totalTx})`);
   const perSlot = Math.ceil(totalTx / 10);
+  const sc = scenarioSel.value;
+
+  let execTotal = 0,
+    failTotal = 0,
+    pendTotal = 0;
 
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     setSlotState(slot, "pending");
+    pendTotal += perSlot;
+    updateMiniStats(execTotal, failTotal, pendTotal);
+    await sleep(150);
 
     let executed = 0,
       failed = 0;
     for (let j = 0; j < perSlot; j++) {
       const success = Math.random() > 0.2;
-      if (success) {
-        incSlot(slot, "exec");
-        executed++;
-        totalFee += 0.0001;
-      } else {
-        incSlot(slot, "fail");
-        failed++;
-      }
-      txRecords.push({
-        slot: slot.id,
-        status: success ? "executed" : "failed",
-      });
+      if (success) executed++;
+      else failed++;
     }
-    updateChart(slot.id, perSlot, executed, failed);
-    renderMetrics();
+
+    execTotal += executed;
+    failTotal += failed;
+    pendTotal -= perSlot;
+
     setSlotState(slot, executed ? "executed" : failed ? "failed" : "idle");
-    await sleep(150);
+    updateMiniStats(execTotal, failTotal, pendTotal);
+    updateMiniChart(slot.id, execTotal, failTotal);
+    addLog(`Slot ${slot.id}: ${executed} ✅, ${failed} ❌`);
+    await sleep(200);
     setSlotState(slot, "idle");
   }
   addLog("✅ Simulation complete.");
@@ -164,20 +134,8 @@ startBtn.addEventListener("click", async () => {
   await simulate();
 });
 resetBtn.addEventListener("click", initSlots);
-exportBtn.addEventListener("click", () => {
-  if (!txRecords.length) return alert("No data yet");
-  const header = "slot,status\n";
-  const csv =
-    header +
-    txRecords.map((r) => `${r.slot},${r.status}`).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "raiku-data.csv";
-  a.click();
-});
 
 window.onload = () => {
   initSlots();
-  initChart();
+  initMiniChart();
 };
