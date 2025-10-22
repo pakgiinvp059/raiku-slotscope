@@ -1,18 +1,19 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Raiku SlotScope — Enhanced Simulation</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <title>Raiku SlotScope — Research Edition (Full)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
     <div class="header-inner">
       <div class="logo">🪐</div>
       <div>
-        <h1>Raiku SlotScope</h1>
-        <p class="tagline">Visualizing deterministic execution on Solana — AOT vs JIT</p>
+        <h1>Raiku SlotScope — Research Edition</h1>
+        <p class="tagline">Visual & Economic Simulation of Deterministic Execution on Solana (AOT vs JIT)</p>
       </div>
     </div>
   </header>
@@ -20,9 +21,16 @@
   <main class="container">
     <section class="controls">
       <button id="startBtn" class="btn-primary">🚀 Start Simulation</button>
-      <label class="inline"><input type="checkbox" id="modeAot"> AOT mode (Ahead-of-Time)</label>
-      <label class="inline">TX count: <input id="txCount" type="number" min="1" max="50" value="10" /></label>
-      <label class="inline"><input id="autorun" type="checkbox"> Auto-run on load</label>
+      <label><input type="checkbox" id="modeAot"> AOT mode (Ahead-of-Time)</label>
+      <label>Scenario:
+        <select id="scenario">
+          <option value="normal">Normal</option>
+          <option value="congestion">Congestion</option>
+          <option value="highfee">High Fee Market</option>
+        </select>
+      </label>
+      <label>TX count: <input id="txCount" type="number" min="1" max="50" value="10" /></label>
+      <label><input id="autorun" type="checkbox"> Auto-run on load</label>
       <button id="exportBtn" class="btn-outline">📥 Export CSV</button>
     </section>
 
@@ -30,8 +38,29 @@
       <div id="timeline" class="grid-timeline"></div>
     </section>
 
+    <!-- Blueprint -->
+    <section id="blueprint">
+      <h3>🧩 Deterministic Execution Blueprint</h3>
+      <div class="pipeline">
+        <div class="step user">👤 User<br><span>Submit TX</span></div>
+        <div class="arrow">➡️</div>
+        <div class="step node">🧠 Raiku Node<br><span>AOT / JIT Scheduling</span></div>
+        <div class="arrow">➡️</div>
+        <div class="step slot">⏱ Slot Reservation<br><span>Guaranteed Order</span></div>
+        <div class="arrow">➡️</div>
+        <div class="step chain">🪐 Solana Chain<br><span>Deterministic Execution</span></div>
+        <div class="arrow">➡️</div>
+        <div class="step result">✅ TX Confirmed<br><span>Finality</span></div>
+      </div>
+    </section>
+
+    <section id="charts">
+      <h3>📊 Transaction Metrics</h3>
+      <canvas id="txChart" height="220"></canvas>
+    </section>
+
     <section id="logWrapper">
-      <h2>🔍 Simulation Log & Results</h2>
+      <h2>🔍 Simulation Log & Economic Results</h2>
       <div id="metrics" class="metrics"></div>
       <div id="log" class="logbox"></div>
     </section>
