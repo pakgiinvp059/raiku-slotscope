@@ -1,106 +1,81 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Raiku SlotScope — Simulation</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raiku SlotScope — Deterministic Simulation</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header class="app-header">
-    <div class="container">
-      <h1>🪐 Raiku SlotScope — Deterministic Simulation</h1>
-      <p class="subtitle">Visual & Economic simulation: AOT vs JIT execution (Solana-like)</p>
+
+<header>
+  <h1>🚀 Raiku SlotScope — Deterministic Simulation</h1>
+  <p>Visual & Economic Simulation: AOT vs JIT Execution (Solana-like)</p>
+</header>
+
+<div class="container">
+
+  <div class="card controls-row">
+    <button class="btn-primary" id="startBtn">Start Simulation</button>
+    <label><input type="checkbox" id="aotMode"> AOT Mode</label>
+    <label>Scenario:
+      <select id="scenario">
+        <option value="normal">Normal</option>
+        <option value="highload">High Load</option>
+        <option value="congested">Congested</option>
+      </select>
+    </label>
+    <label>TX Count: <input type="number" id="txCount" value="100" min="1" max="1000"></label>
+    <label><input type="checkbox" id="autoRun"> Auto-run on load</label>
+    <button class="btn-outline" id="exportBtn">Export CSV</button>
+    <button class="btn-outline" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="slots-grid" id="slots"></div>
+
+  <div class="card blueprint">
+    <h3>🧩 Deterministic Execution Blueprint</h3>
+    <div class="pipeline">
+      <div class="step">👤 User<br><small>Submit TX</small></div>
+      <div class="arrow">➡️</div>
+      <div class="step">🧠 Raiku Node<br><small>AOT / JIT Scheduling</small></div>
+      <div class="arrow">➡️</div>
+      <div class="step">⏱ Slot Reservation<br><small>Guaranteed Order</small></div>
+      <div class="arrow">➡️</div>
+      <div class="step">🪐 Solana Chain<br><small>Deterministic Execution</small></div>
+      <div class="arrow">➡️</div>
+      <div class="step">✅ TX Confirmed<br><small>Finality</small></div>
     </div>
-  </header>
+  </div>
 
-  <main class="container">
-    <!-- Controls -->
-    <section class="card controls-row" aria-label="Controls">
-      <button id="startBtn" class="btn-primary">🚀 Start Simulation</button>
-
-      <label class="control-inline tooltip">
-        <input id="modeAot" type="checkbox" /> AOT Mode
-        <span class="tooltiptext">Reserve slots before execution: reduces pending/fails but increases gas cost.</span>
-      </label>
-
-      <label class="control-inline">Scenario:
-        <select id="scenario">
-          <option value="normal">Normal</option>
-          <option value="congestion">Network Congestion</option>
-          <option value="highfee">High Fee Market</option>
-        </select>
-      </label>
-
-      <label class="control-inline">TX Count:
-        <input id="txCount" type="number" min="10" max="1000" value="100" />
-      </label>
-
-      <label class="control-inline"><input id="autorun" type="checkbox" /> Auto-run on load</label>
-
-      <button id="exportBtn" class="btn-outline">📥 Export CSV</button>
-      <button id="resetBtn" class="btn-outline">🔄 Reset</button>
-    </section>
-
-    <!-- AOT info -->
-    <div id="aotInfo" class="aot-banner" role="status" aria-live="polite"></div>
-
-    <!-- Slots timeline -->
-    <section id="timeline-container">
-      <div id="timeline" class="slots-grid" aria-label="Slot timeline"></div>
-    </section>
-
-    <!-- Deterministic blueprint -->
-    <section id="blueprint" class="card blueprint">
-      <h3>🧩 Deterministic Execution Blueprint</h3>
-      <div class="pipeline" aria-hidden="false">
-        <div class="step small">👤<br><span class="smallsub">User</span></div>
-        <div class="arrow small">➡</div>
-        <div class="step small">🧠<br><span class="smallsub">Raiku Node</span></div>
-        <div class="arrow small">➡</div>
-        <div class="step small">⏱<br><span class="smallsub">Slot Reservation</span></div>
-        <div class="arrow small">➡</div>
-        <div class="step small">🔗<br><span class="smallsub">Solana Chain</span></div>
-        <div class="arrow small">➡</div>
-        <div class="step small">✅<br><span class="smallsub">TX Confirmed</span></div>
-      </div>
-    </section>
-
-    <!-- Chart & legend -->
-    <section id="chart-section" class="card chart-card">
-      <h3>📊 Transaction Metrics</h3>
-      <canvas id="txChart" aria-label="Transaction metrics chart"></canvas>
-      <div class="chart-legend" id="chartLegend" aria-hidden="false">
-        <span class="legend-item black">⬛ Total</span>
-        <span class="legend-item green">🟩 Executed</span>
-        <span class="legend-item yellow">🟨 Pending</span>
-        <span class="legend-item red">🟥 Failed</span>
-      </div>
-
-      <div class="metrics-row" aria-label="Summary metrics">
-        <div class="metric"><div class="label">Executed</div><div class="value" id="m-exec">0</div></div>
-        <div class="metric"><div class="label">Failed</div><div class="value" id="m-fail">0</div></div>
-        <div class="metric"><div class="label">Pending</div><div class="value" id="m-pend">0</div></div>
-        <div class="metric highlight-blue"><div class="label">AOT Gas (SOL)</div><div class="value" id="m-aotgas">0.00000</div></div>
-        <div class="metric highlight-orange"><div class="label">Total Gas (SOL)</div><div class="value" id="m-gas">0.00000</div></div>
-      </div>
-    </section>
-
-    <!-- Log -->
-    <section class="card" aria-label="Simulation log">
-      <h3>📝 Simulation Log</h3>
-      <div id="log" class="logbox" aria-live="polite"></div>
-    </section>
-
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <small>Built by pakgiinvp059 — Raiku Inevitable Ideathon demo</small>
+  <div class="card chart-card">
+    <h3>📊 Transaction Metrics</h3>
+    <canvas id="txChart"></canvas>
+    <div class="chart-legend">
+      <span>⚫ Total</span>
+      <span>🟢 Executed</span>
+      <span>🔴 Failed</span>
+      <span>🟡 Pending</span>
     </div>
-  </footer>
+  </div>
 
-  <script src="script.js"></script>
+  <div class="metrics-row">
+    <div class="metric highlight-green"><div class="label">AOT Gas (SOL)</div><div id="aotGas">0.0000</div></div>
+    <div class="metric highlight-blue"><div class="label">Total Gas (SOL)</div><div id="totalGas">0.0000</div></div>
+    <div class="metric"><div class="label">Executed TX</div><div id="execCount">0</div></div>
+    <div class="metric"><div class="label">Failed TX</div><div id="failCount">0</div></div>
+    <div class="metric"><div class="label">Pending TX</div><div id="pendCount">0</div></div>
+  </div>
+
+  <div class="card logbox" id="logBox"></div>
+
+</div>
+
+<footer>
+  Built for the Raiku Ideathon Track | pakgiinvp059 © 2025
+</footer>
+
+<script src="script.js"></script>
 </body>
 </html>
