@@ -11,24 +11,20 @@
   --radius: 12px;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+
 body {
   font-family: "Inter", sans-serif;
   background: var(--bg);
   color: var(--text);
 }
+
 .container {
   max-width: 1280px;
   margin: auto;
   padding: 20px;
-  overflow-x: hidden;
 }
 
-/* ===== HEADER ===== */
+/* Header */
 .topbar {
   background: linear-gradient(90deg, #06b6d4, #0ea5e9);
   color: white;
@@ -47,21 +43,20 @@ body {
   opacity: 0.9;
 }
 
-/* ===== CARDS ===== */
+/* Controls */
 .card {
   background: var(--card);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 16px;
   box-shadow: var(--shadow);
   margin-bottom: 16px;
 }
 
-/* ===== CONTROLS ===== */
 .controls-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 .btn {
   background: #e0f2fe;
@@ -75,15 +70,8 @@ body {
   color: #fff;
   font-weight: 600;
 }
-.mode-toggle label {
-  margin-right: 8px;
-}
-label {
-  font-size: 14px;
-  color: #374151;
-}
 
-/* ===== SLOTS ===== */
+/* Slots */
 .slots-row {
   display: flex;
   justify-content: space-between;
@@ -115,20 +103,12 @@ label {
   height: 10px;
   border-radius: 50%;
 }
-.dot.green {
-  background: var(--green);
-}
-.dot.yellow {
-  background: var(--yellow);
-}
-.dot.red {
-  background: var(--red);
-}
-.dot.black {
-  background: #111;
-}
+.dot.green { background: var(--green); }
+.dot.yellow { background: var(--yellow); }
+.dot.red { background: var(--red); }
+.dot.blue { background: var(--blue); }
 
-/* ===== BLUEPRINT ===== */
+/* Blueprint */
 .blueprint .flow {
   display: flex;
   justify-content: center;
@@ -151,14 +131,11 @@ label {
   font-size: 20px;
 }
 
-/* ===== METRICS ===== */
+/* Metrics */
 .metrics {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 18px;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
   align-items: start;
 }
 .chart-block {
@@ -166,26 +143,14 @@ label {
   border-radius: var(--radius);
   padding: 10px 14px;
   box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   min-height: 340px;
-  max-height: 340px;
-}
-.chart-block h4 {
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
 }
 .chart-block canvas {
   width: 100% !important;
   height: 260px !important;
-  max-width: 100%;
-  display: block;
 }
 
-/* ===== SUMMARY ===== */
+/* Summary */
 .summary {
   display: flex;
   justify-content: space-between;
@@ -205,10 +170,10 @@ label {
   color: var(--accent);
 }
 
-/* ===== LEGEND DOTS (custom for TX chart) ===== */
+/* Legend Dots */
 .legend-dots {
   text-align: center;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 13px;
   color: #334155;
 }
@@ -218,41 +183,4 @@ label {
   height: 10px;
   border-radius: 50%;
   margin: 0 4px;
-}
-.legend-dots .dot.green {
-  background: #10b981;
-}
-.legend-dots .dot.yellow {
-  background: #f59e0b;
-}
-.legend-dots .dot.red {
-  background: #ef4444;
-}
-.legend-dots .dot.black {
-  background: #111;
-}
-
-/* ===== COLORS & STATS TEXT ===== */
-.green-txt {
-  color: #10b981;
-}
-.yellow-txt {
-  color: #f59e0b;
-}
-.red-txt {
-  color: #ef4444;
-}
-
-.slot-stats {
-  font-size: 13px;
-  margin-top: 4px;
-  font-weight: 500;
-}
-
-/* ===== FOOTER ===== */
-.footer {
-  text-align: center;
-  color: var(--muted);
-  padding: 18px 0;
-  font-size: 13px;
 }
