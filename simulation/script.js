@@ -2,27 +2,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.querySelector("#startBtn");
   const resetBtn = document.querySelector("#resetBtn");
   const autoRunCheckbox = document.querySelector("#autoRun");
-  const txCountInput = document.querySelector("#txCount");
   const modeRadios = document.querySelectorAll("input[name='mode']");
-
   const ctxTx = document.getElementById("txChart").getContext("2d");
   const ctxGas = document.getElementById("gasChart").getContext("2d");
 
-  const totalTxDisplay = document.querySelector("#totalTx");
-  const totalGasAOTDisplay = document.querySelector("#totalGasAOT");
-  const totalGasJITDisplay = document.querySelector("#totalGasJIT");
+  const totalEl = document.getElementById("totalTx");
+  const pendingEl = document.getElementById("pendingTx");
+  const executedEl = document.getElementById("executedTx");
+  const failedEl = document.getElementById("failedTx");
+  const aotGasEl = document.getElementById("aotGas");
+  const jitGasEl = document.getElementById("jitGas");
 
+  let total = 0, pending = 0, executed = 0, failed = 0, aotGas = 0, jitGas = 0;
   let currentMode = "AOT";
-  const autoRunLimit = 5;
 
-  let totalTx = 0, totalGasAOT = 0, totalGasJIT = 0;
-
-  modeRadios.forEach(radio => {
-    radio.addEventListener("change", () => {
-      currentMode = radio.value;
-      resetSimulation();
-    });
-  });
+  modeRadios.forEach(r => r.addEventListener("change", () => {
+    currentMode = r.value;
+  }));
 
   const txChart = new Chart(ctxTx, {
     type: "line",
@@ -31,10 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
       datasets: [
         { label: "Executed", data: Array(10).fill(0), borderColor: "#2ecc71", fill: false },
         { label: "Pending", data: Array(10).fill(0), borderColor: "#f1c40f", fill: false },
-        { label: "Failed", data: Array(10).fill(0), borderColor: "#e74c3c", fill: false }
+        { label: "Failed", data: Array(10).fill(0), borderColor: "#e74c3c", fill: false },
       ],
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
   });
 
   const gasChart = new Chart(ctxGas, {
@@ -42,8 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: "AOT Gas", data: Array(10).fill(0), backgroundColor: "#27ae60" },
-        { label: "JIT Gas", data: Array(10).fill(0), backgroundColor: "#3498db" }
+        { label: "AOT Gas", backgroundColor: "#27ae60", data: Array(10).fill(0) },
+        { label: "JIT Gas", backgroundColor: "#2980b9", data: Array(10).fill(0) },
       ],
     },
     options: {
@@ -54,73 +50,76 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   });
 
-  function resetSimulation() {
-    txChart.data.datasets.forEach(ds => (ds.data = Array(10).fill(0)));
-    gasChart.data.datasets.forEach(ds => (ds.data = Array(10).fill(0)));
-    totalTx = totalGasAOT = totalGasJIT = 0;
-    updateTotals();
-    txChart.update(); gasChart.update();
-  }
-
-  function generateData(mode, txCount) {
+  function randomizeData(mode) {
     return Array(10).fill(0).map(() => {
-      let executed, pending, failed, gas;
+      let ex, pend, fail, gas;
       if (mode === "AOT") {
-        executed = Math.floor(txCount / 10 * (0.88 + Math.random() * 0.07));
-        pending = Math.floor(txCount / 10 * (0.015 + Math.random() * 0.015));
-        failed = Math.floor(txCount / 10 * (0.02 + Math.random() * 0.03));
-        gas = +(0.0018 + Math.random() * 0.0007).toFixed(4);
+        ex = Math.floor(90 + Math.random() * 5);
+        pend = Math.floor(Math.random() * 2);
+        fail = Math.floor(Math.random() * 3);
+        gas = +(0.0018 + Math.random() * 0.0005).toFixed(4);
       } else {
-        executed = Math.floor(txCount / 10 * (0.8 + Math.random() * 0.1));
-        pending = Math.floor(txCount / 10 * (0.04 + Math.random() * 0.05));
-        failed = Math.floor(txCount / 10 * (0.03 + Math.random() * 0.05));
-        gas = +(0.0013 + Math.random() * 0.0007).toFixed(4);
+        ex = Math.floor(80 + Math.random() * 10);
+        pend = Math.floor(3 + Math.random() * 4);
+        fail = Math.floor(2 + Math.random() * 5);
+        gas = +(0.0014 + Math.random() * 0.0004).toFixed(4);
       }
-      return { executed, pending, failed, gas };
+      return { ex, pend, fail, gas };
     });
   }
 
-  function simulateOnce() {
-    const txCount = parseInt(txCountInput.value) || 100;
-    const data = generateData(currentMode, txCount);
+  function updateMetrics(d) {
+    total += d.reduce((sum, s) => sum + s.ex + s.pend + s.fail, 0);
+    pending += d.reduce((sum, s) => sum + s.pend, 0);
+    executed += d.reduce((sum, s) => sum + s.ex, 0);
+    failed += d.reduce((sum, s) => sum + s.fail, 0);
+    if (currentMode === "AOT")
+      aotGas += d.reduce((s, x) => s + x.gas, 0);
+    else jitGas += d.reduce((s, x) => s + x.gas, 0);
 
-    txChart.data.datasets.forEach((ds, i) => ds.data = data.map(d => [d.executed, d.pending, d.failed][i]));
-    txChart.update();
-
-    if (currentMode === "AOT") {
-      gasChart.data.datasets[0].data = data.map(d => d.gas);
-      gasChart.data.datasets[1].data = Array(10).fill(0);
-      totalGasAOT += data.reduce((s, d) => s + d.gas, 0);
-    } else {
-      gasChart.data.datasets[1].data = data.map(d => d.gas);
-      gasChart.data.datasets[0].data = Array(10).fill(0);
-      totalGasJIT += data.reduce((s, d) => s + d.gas, 0);
-    }
-    gasChart.update();
-
-    totalTx += data.reduce((s, d) => s + d.executed + d.pending + d.failed, 0);
-    updateTotals();
+    totalEl.textContent = total;
+    pendingEl.textContent = pending;
+    executedEl.textContent = executed;
+    failedEl.textContent = failed;
+    aotGasEl.textContent = aotGas.toFixed(4);
+    jitGasEl.textContent = jitGas.toFixed(4);
   }
 
-  function updateTotals() {
-    totalTxDisplay.textContent = totalTx.toLocaleString();
-    totalGasAOTDisplay.textContent = totalGasAOT.toFixed(4);
-    totalGasJITDisplay.textContent = totalGasJIT.toFixed(4);
+  function simulate() {
+    const d = randomizeData(currentMode);
+    txChart.data.datasets[0].data = d.map(x => x.ex);
+    txChart.data.datasets[1].data = d.map(x => x.pend);
+    txChart.data.datasets[2].data = d.map(x => x.fail);
+    txChart.update();
+
+    if (currentMode === "AOT") gasChart.data.datasets[0].data = d.map(x => x.gas);
+    else gasChart.data.datasets[1].data = d.map(x => x.gas);
+    gasChart.update();
+
+    updateMetrics(d);
   }
 
   async function autoRun() {
     for (let i = 0; i < 5; i++) {
-      simulateOnce();
-      await new Promise(r => setTimeout(r, 1200));
+      simulate();
+      await new Promise(r => setTimeout(r, 1000));
     }
-    const cont = confirm("Auto-run finished 5 rounds. Continue?");
-    if (cont) autoRun(); else autoRunCheckbox.checked = false;
+    const cont = confirm("Auto-run 5 rounds completed. Continue?");
+    if (cont) autoRun();
+    else autoRunCheckbox.checked = false;
   }
 
   startBtn.addEventListener("click", () => {
-    simulateOnce();
+    simulate();
     if (autoRunCheckbox.checked) autoRun();
   });
 
-  resetBtn.addEventListener("click", resetSimulation);
+  resetBtn.addEventListener("click", () => {
+    total = pending = executed = failed = aotGas = jitGas = 0;
+    txChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
+    gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
+    txChart.update(); gasChart.update();
+    totalEl.textContent = pendingEl.textContent = executedEl.textContent = failedEl.textContent = "0";
+    aotGasEl.textContent = jitGasEl.textContent = "0.0000";
+  });
 });
