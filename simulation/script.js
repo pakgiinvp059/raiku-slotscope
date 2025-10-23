@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.getElementById("startBtn");
   const resetBtn = document.getElementById("resetBtn");
+  const compareBtn = document.getElementById("compareBtn");
   const autoRunCheckbox = document.getElementById("autoRun");
   const modeRadios = document.querySelectorAll("input[name='mode']");
-  const ctxTx = document.getElementById("txChart").getContext("2d");
-  const ctxGas = document.getElementById("gasChart").getContext("2d");
+  const slotEls = document.querySelectorAll(".slot-value");
 
   const executedEl = document.getElementById("executedTx");
   const failedEl = document.getElementById("failedTx");
@@ -13,13 +13,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const jitGasEl = document.getElementById("jitGas");
   const totalGasEl = document.getElementById("totalGas");
 
+  const compareBox = document.getElementById("comparison");
+  const jitTxTotalEl = document.getElementById("jitTxTotal");
+  const aotTxTotalEl = document.getElementById("aotTxTotal");
+  const jitGasCompareEl = document.getElementById("jitGasCompare");
+  const aotGasCompareEl = document.getElementById("aotGasCompare");
+
   let executed = 0, failed = 0, pending = 0;
   let aotGas = 0, jitGas = 0;
+  let jitTotal = 0, aotTotal = 0;
   let currentMode = "JIT";
 
   modeRadios.forEach(r => r.addEventListener("change", () => currentMode = r.value));
 
-  const txChart = new Chart(ctxTx, {
+  const txChart = new Chart(document.getElementById("txChart"), {
     type: "line",
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
@@ -32,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     options: { plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
   });
 
-  const gasChart = new Chart(ctxGas, {
+  const gasChart = new Chart(document.getElementById("gasChart"), {
     type: "bar",
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
@@ -45,15 +52,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function randomizeData(mode) {
-    return Array.from({ length: 10 }, (_, i) => {
-      const zeroSlot = i % 4 === 0; // 1/4 slot không có gas
-      let ex = Math.floor(80 + Math.random() * 15);
-      let pend = Math.floor(Math.random() * 3);
-      let fail = Math.floor(Math.random() * 3);
-      let gas = zeroSlot ? 0 : +(0.00006 + Math.random() * 0.00003).toFixed(5);
-      if (mode === "AOT") gas *= 1.3;
+    return Array.from({ length: 10 }, () => {
+      let ex = Math.floor(80 + Math.random() * 20);
+      let pend = Math.floor(Math.random() * 5);
+      let fail = Math.floor(Math.random() * 5);
+      let gas = +(0.00006 + Math.random() * 0.00004).toFixed(5);
+      if (mode === "AOT") gas *= 1.2;
       return { ex, pend, fail, gas };
     });
+  }
+
+  function updateSlots(d) {
+    d.forEach((x, i) => slotEls[i].textContent = x.ex + x.pend + x.fail);
   }
 
   function updateDisplay(d) {
@@ -62,8 +72,8 @@ document.addEventListener("DOMContentLoaded", () => {
     pending += d.reduce((s, x) => s + x.pend, 0);
     const gasSum = d.reduce((s, x) => s + x.gas, 0);
 
-    if (currentMode === "AOT") aotGas += gasSum;
-    else jitGas += gasSum;
+    if (currentMode === "AOT") { aotGas += gasSum; aotTotal += executed + failed + pending; }
+    else { jitGas += gasSum; jitTotal += executed + failed + pending; }
 
     executedEl.textContent = executed;
     failedEl.textContent = failed;
@@ -84,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else gasChart.data.datasets[1].data = d.map(x => x.gas);
     gasChart.update();
 
+    updateSlots(d);
     updateDisplay(d);
   }
 
@@ -92,8 +103,6 @@ document.addEventListener("DOMContentLoaded", () => {
       simulate();
       await new Promise(r => setTimeout(r, 800));
     }
-    if (confirm("Auto-run finished 5 rounds. Continue?")) autoRun();
-    else autoRunCheckbox.checked = false;
   }
 
   startBtn.addEventListener("click", () => {
@@ -104,10 +113,17 @@ document.addEventListener("DOMContentLoaded", () => {
   resetBtn.addEventListener("click", () => {
     executed = failed = pending = 0;
     aotGas = jitGas = 0;
+    jitTotal = aotTotal = 0;
     txChart.data.datasets.forEach(d => d.data = Array(10).fill(0));
     gasChart.data.datasets.forEach(d => d.data = Array(10).fill(0));
     txChart.update(); gasChart.update();
+    slotEls.forEach(el => el.textContent = 0);
     executedEl.textContent = failedEl.textContent = pendingEl.textContent = 0;
     aotGasEl.textContent = jitGasEl.textContent = totalGasEl.textContent = "0.00000";
+    compareBox.classList.add("hidden");
   });
-});
+
+  compareBtn.addEventListener("click", () => {
+    compareBox.classList.toggle("hidden");
+    jitTxTotalEl.textContent = jitTotal;
+    aotTxTotalEl.textContent
