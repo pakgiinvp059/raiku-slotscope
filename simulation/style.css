@@ -34,6 +34,7 @@ button:hover {
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 10px;
 }
 .slot {
   background: white;
@@ -42,9 +43,7 @@ button:hover {
   width: 90px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
-.dots {
-  margin: 5px 0;
-}
+.dots { margin: 5px 0; }
 .dot {
   display: inline-block;
   width: 10px;
@@ -83,18 +82,26 @@ button:hover {
 
 .charts {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   width: 90%;
   margin: 0 auto;
+  gap: 10px;
 }
 .chart-box {
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   padding: 10px;
-  width: 45%;
-  height: 280px;
+}
+.chart-box.large {
+  flex: 3;
+  height: 300px;
+}
+.chart-box.small {
+  flex: 1;
+  height: 300px;
 }
 .legend {
   margin-top: 5px;
@@ -119,21 +126,5 @@ button:hover {
 .box span {
   font-size: 18px;
   font-weight: 600;
-  color: #007bff;
-}
-
-.summary-extra {
-  margin-top: 10px;
-  text-align: center;
-  font-size: 14px;
-  color: #555;
-}
-.summary-row {
-  display: flex;
-  justify-content: center;
-  gap: 25px;
-  margin-top: 3px;
-}
-.summary-row b {
   color: #007bff;
 }
