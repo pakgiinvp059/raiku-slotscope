@@ -9,8 +9,9 @@ const resetBtn = document.getElementById("resetBtn");
 const exportBtn = document.getElementById("exportBtn");
 const txCountInput = document.getElementById("txCount");
 const scenarioSel = document.getElementById("scenario");
-const aotChk = document.getElementById("aotChk");
 const autorunChk = document.getElementById("autorun");
+const jitMode = document.getElementById("jitMode");
+const aotMode = document.getElementById("aotMode");
 
 const execEl = document.querySelector("#executedCnt strong");
 const failEl = document.querySelector("#failedCnt strong");
@@ -77,7 +78,7 @@ function createCharts() {
 function simulateOnce() {
   const txCount = parseInt(txCountInput.value) || 100;
   const scenario = scenarioSel.value;
-  const isAOT = aotChk.checked;
+  const isAOT = aotMode.checked;
   let pFail = 0.02,
     pPend = 0.03,
     gA = 0.0015,
