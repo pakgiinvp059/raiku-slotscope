@@ -1,132 +1,276 @@
-let chart;
-let autoRunning = false;
+// script.js - Raiku SlotScope simulation
+// Author: assistant (adapted for pakgiinvp059)
 
-function addLog(msg) {
-  const box = document.getElementById("logBox");
-  const t = new Date().toLocaleTimeString();
-  box.innerHTML += `[${t}] ${msg}<br>`;
-  box.scrollTop = box.scrollHeight;
-}
+const SLOT_COUNT = 10;
 
-function initSlots() {
-  const slots = document.getElementById("slots");
-  slots.innerHTML = "";
-  for (let i = 1; i <= 10; i++) {
-    slots.innerHTML += `
-      <div class="slot-tile">
-        <div class="label">Slot ${i}</div>
-        <div class="slot-counters">
-          <span class="counter exec">Exec: 0</span>
-          <span class="counter pend">Pend: 0</span>
-          <span class="counter fail">Fail: 0</span>
-        </div>
+const startBtn = document.getElementById('startBtn');
+const aotMode = document.getElementById('aotMode');
+const scenarioSel = document.getElementById('scenario');
+const txCountInput = document.getElementById('txCount');
+const autorun = document.getElementById('autorun');
+const exportCsv = document.getElementById('exportCsv');
+const resetBtn = document.getElementById('resetBtn');
+const slotsWrap = document.getElementById('slotsWrap');
+const logContent = document.getElementById('logContent');
+
+const aotGasEl = document.getElementById('aotGas');
+const totalGasEl = document.getElementById('totalGas');
+const executedCountEl = document.getElementById('executedCount');
+const failedCountEl = document.getElementById('failedCount');
+const pendingCountEl = document.getElementById('pendingCount');
+
+let slotData = []; // [{exec, pend, fail}]
+let totalExecuted = 0, totalFailed = 0, totalPending = 0;
+let totalGas = 0, aotGas = 0;
+
+// create slot DOMs
+function createSlots(){
+  slotsWrap.innerHTML = '';
+  slotData = [];
+  for(let i=1;i<=SLOT_COUNT;i++){
+    const el = document.createElement('div');
+    el.className = 'slot';
+    el.id = `slot-${i}`;
+    el.innerHTML = `
+      <h4>Slot ${i}</h4>
+      <div class="dots">
+        <div class="dot green" title="Executed"></div>
+        <div class="dot yellow" title="Pending"></div>
+        <div class="dot red" title="Failed"></div>
+      </div>
+      <div class="counts">
+        <span class="exec">Exec:<br><strong>0</strong></span>
+        <span class="pend">Pend:<br><strong>0</strong></span>
+        <span class="fail">Fail:<br><strong>0</strong></span>
       </div>`;
+    slotsWrap.appendChild(el);
+    slotData.push({exec:0, pend:0, fail:0});
   }
 }
+createSlots();
 
-function initChart() {
-  const ctx = document.getElementById("txChart").getContext("2d");
-  chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
-      datasets: [
-        { label: "Total TX", data: Array(10).fill(0), borderColor: "#000", fill: false },
-        { label: "Executed", data: Array(10).fill(0), borderColor: "#20b050", fill: false },
-        { label: "Failed", data: Array(10).fill(0), borderColor: "#ff4545", fill: false },
-        { label: "Pending", data: Array(10).fill(0), borderColor: "#fcbf24", fill: false },
-      ],
+// Chart.js setup
+const ctx = document.getElementById('txChart').getContext('2d');
+let txChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: Array.from({length:SLOT_COUNT},(_,i)=>`Slot ${i+1}`),
+    datasets: [
+      {label:'Total', data: Array(SLOT_COUNT).fill(0), borderColor:'#111827', backgroundColor:'#111827', pointRadius:3},
+      {label:'Pending', data: Array(SLOT_COUNT).fill(0), borderColor:'#f59e0b', backgroundColor:'#f59e0b', pointRadius:3},
+      {label:'Executed', data: Array(SLOT_COUNT).fill(0), borderColor:'#10b981', backgroundColor:'#10b981', pointRadius:3},
+      {label:'Failed', data: Array(SLOT_COUNT).fill(0), borderColor:'#ef4444', backgroundColor:'#ef4444', pointRadius:3}
+    ]
+  },
+  options: {
+    responsive:true,
+    maintainAspectRatio:false,
+    scales:{
+      x:{ticks:{autoSkip:false}},
+      y:{beginAtZero:true, ticks:{stepSize:1}}
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true, max: 10 } },
-      plugins: { legend: { display: false } },
-    },
-  });
-}
-
-async function simulate() {
-  addLog("Simulation started...");
-  const slots = document.querySelectorAll(".slot-tile");
-  const txCount = parseInt(document.getElementById("txCount").value);
-  const aot = document.getElementById("aotMode").checked;
-  const scenario = document.getElementById("scenario").value;
-
-  let execTotal = 0, failTotal = 0, pendTotal = 0, totalGas = 0, aotGas = 0;
-
-  for (let i = 0; i < slots.length; i++) {
-    const exec = Math.floor(Math.random() * (txCount / 10)) + 3;
-    let fail = Math.floor(Math.random() * 3);
-    let pend = scenario !== "normal" && Math.random() > 0.7 ? Math.floor(Math.random() * 3) : 0;
-
-    if (aot) { fail = Math.floor(fail / 2); pend = Math.floor(pend / 2); }
-
-    const totalSlot = exec + fail + pend;
-    execTotal += exec; failTotal += fail; pendTotal += pend;
-    totalGas += totalSlot * 0.0003;
-    if (aot) aotGas += totalSlot * 0.0005;
-
-    const counters = slots[i].querySelectorAll(".counter");
-    counters[0].textContent = `Exec: ${exec}`;
-    counters[1].textContent = `Pend: ${pend}`;
-    counters[2].textContent = `Fail: ${fail}`;
-
-    chart.data.datasets[0].data[i] = totalSlot;
-    chart.data.datasets[1].data[i] = exec;
-    chart.data.datasets[2].data[i] = fail;
-    chart.data.datasets[3].data[i] = pend;
-    chart.update();
-
-    await new Promise(r => setTimeout(r, 150));
+    plugins:{legend:{display:false}}
   }
+});
 
-  document.getElementById("execCount").textContent = execTotal;
-  document.getElementById("failCount").textContent = failTotal;
-  document.getElementById("pendCount").textContent = pendTotal;
-  document.getElementById("totalGas").textContent = totalGas.toFixed(5);
-  document.getElementById("aotGas").textContent = aotGas.toFixed(5);
-
-  addLog(`✅ Done: Exec=${execTotal}, Fail=${failTotal}, Pend=${pendTotal}`);
+function log(msg){
+  const time = new Date().toLocaleTimeString();
+  const p = document.createElement('div');
+  p.textContent = `[${time}] ${msg}`;
+  logContent.prepend(p);
 }
 
-function resetAll() {
-  initSlots();
-  initChart();
-  document.getElementById("execCount").textContent =
-  document.getElementById("failCount").textContent =
-  document.getElementById("pendCount").textContent = "0";
-  document.getElementById("totalGas").textContent =
-  document.getElementById("aotGas").textContent = "0.0000";
-  document.getElementById("logBox").innerHTML = "";
-  addLog("🔄 Reset complete");
-}
-
-async function autoRunLoop() {
-  autoRunning = true;
-  addLog("🤖 Auto-run started: running 5 cycles...");
-  let cycle = 0;
-
-  while (autoRunning) {
-    for (let i = 0; i < 5; i++) {
-      if (!autoRunning) break;
-      cycle++;
-      addLog(`Cycle ${cycle} running...`);
-      await simulate();
-      await new Promise(r => setTimeout(r, 1200));
-    }
-    const cont = confirm("Auto-run completed 5 cycles. Continue?");
-    if (!cont) { addLog("🛑 Auto stopped by user."); autoRunning = false; }
-  }
-}
-
-document.getElementById("startBtn").onclick = simulate;
-document.getElementById("resetBtn").onclick = resetAll;
-document.getElementById("exportBtn").onclick = () => addLog("📦 Export CSV (mock)");
-document.getElementById("autoRun").onclick = autoRunLoop;
-
-window.onload = () => {
-  initSlots();
-  initChart();
-  addLog("✨ Ready — click Start Simulation.");
+// Scenario parameters (probabilities)
+const SCENARIOS = {
+  normal: {failRate:0.05, pendRate:0.05, extraLoad:0},
+  high: {failRate:0.12, pendRate:0.12, extraLoad:0.2},
+  congested: {failRate:0.28, pendRate:0.30, extraLoad:0.5}
 };
+
+// run one simulation
+function runSimulationSingle(){
+  // reset per-run counters
+  totalExecuted = 0; totalFailed = 0; totalPending = 0;
+  totalGas = 0; aotGas = 0;
+  slotData = slotData.map(()=>({exec:0, pend:0, fail:0}));
+
+  const txCount = Math.max(1, parseInt(txCountInput.value)||100);
+  const modeAot = aotMode.checked;
+  const scenario = scenarioSel.value;
+  const params = SCENARIOS[scenario];
+
+  // distribute TX to slots randomly (not equal) to simulate real network variability
+  // Use weighted random: slots get random counts summing to txCount
+  // We'll use simple stochastic allocation
+  let remaining = txCount;
+  const baseAlloc = Math.floor(txCount / SLOT_COUNT);
+  // first fill with baseAlloc then distribute remainder randomly
+  for(let i=0;i<SLOT_COUNT;i++){
+    slotData[i].alloc = baseAlloc;
+  }
+  let rem = txCount - baseAlloc * SLOT_COUNT;
+  while(rem>0){
+    const idx = Math.floor(Math.random()*SLOT_COUNT);
+    slotData[idx].alloc = (slotData[idx].alloc||0) + 1;
+    rem--;
+  }
+
+  // simulate each TX outcome per slot
+  for(let i=0;i<SLOT_COUNT;i++){
+    const alloc = slotData[i].alloc||0;
+    let exec=0, pend=0, fail=0;
+    for(let t=0;t<alloc;t++){
+      // dynamic probabilities
+      let failP = params.failRate;
+      let pendP = params.pendRate;
+      // High load increases pending/fail slightly (random)
+      if(Math.random() < params.extraLoad) { failP *= 1.3; pendP *= 1.4; }
+      if(modeAot){
+        // AOT reduces pending to 0 and reduces fail drastically but increases gas
+        pendP = 0;
+        failP = Math.max(0.001, failP * 0.15);
+      }
+      // Random outcome
+      const r = Math.random();
+      if(r < failP){
+        fail++;
+      } else if(r < failP + pendP){
+        pend++;
+      } else {
+        exec++;
+      }
+    }
+    slotData[i].exec = exec;
+    slotData[i].pend = pend;
+    slotData[i].fail = fail;
+
+    totalExecuted += exec;
+    totalFailed += fail;
+    totalPending += pend;
+
+    // gas estimation: base per tx + AOT premium for exec
+    const gasPerTx = modeAot ? 0.00045 : 0.00030; // mock numbers
+    const slotGas = (exec+pend+fail) * gasPerTx;
+    totalGas += slotGas;
+    if(modeAot) aotGas += slotGas * 0.35; // mock fraction attributed to AOT
+  }
+
+  // update UI
+  updateSlotsUI();
+  updateChart();
+  updateSummary();
+  log(`Run complete: Mode=${modeAot? 'AOT': 'JIT'}, Scenario=${scenario}, TX=${txCount}. Exec=${totalExecuted} Fail=${totalFailed} Pend=${totalPending}`);
+}
+
+// update slot DOMs
+function updateSlotsUI(){
+  for(let i=0;i<SLOT_COUNT;i++){
+    const el = document.getElementById(`slot-${i+1}`);
+    el.querySelector('.exec strong').textContent = slotData[i].exec;
+    el.querySelector('.pend strong').textContent = slotData[i].pend;
+    el.querySelector('.fail strong').textContent = slotData[i].fail;
+  }
+}
+
+// update chart
+function updateChart(){
+  const totalArr = [], pendArr=[], execArr=[], failArr=[];
+  for(let i=0;i<SLOT_COUNT;i++){
+    const s = slotData[i];
+    totalArr.push(s.exec + s.pend + s.fail);
+    pendArr.push(s.pend);
+    execArr.push(s.exec);
+    failArr.push(s.fail);
+  }
+
+  txChart.data.datasets[0].data = totalArr;
+  txChart.data.datasets[1].data = pendArr;
+  txChart.data.datasets[2].data = execArr;
+  txChart.data.datasets[3].data = failArr;
+
+  // autoscale y max to nearest integer + margin
+  const maxVal = Math.max(...totalArr, 1);
+  txChart.options.scales.y.max = Math.ceil(maxVal * 1.2);
+  txChart.update();
+}
+
+// update summary numbers
+function updateSummary(){
+  aotGasEl.textContent = aotGas.toFixed(4);
+  totalGasEl.textContent = totalGas.toFixed(4);
+  executedCountEl.textContent = totalExecuted;
+  failedCountEl.textContent = totalFailed;
+  pendingCountEl.textContent = totalPending;
+}
+
+
+// export CSV
+exportCsv.addEventListener('click', ()=>{
+  let csv = 'Slot,Executed,Pending,Failed,Total\n';
+  for(let i=0;i<SLOT_COUNT;i++){
+    const s = slotData[i];
+    csv += `${i+1},${s.exec},${s.pend},${s.fail},${s.exec+s.pend+s.fail}\n`;
+  }
+  csv += `,,Executed,${totalExecuted},\n`;
+  csv += `,,Failed,${totalFailed},\n`;
+  csv += `,,Pending,${totalPending},\n`;
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'raiku-slotscope-summary.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// reset
+resetBtn.addEventListener('click', ()=>{
+  createSlots();
+  txChart.data.datasets.forEach(ds => ds.data = Array(SLOT_COUNT).fill(0));
+  txChart.update();
+  logContent.innerHTML = '';
+  totalExecuted = totalFailed = totalPending = 0;
+  totalGas = aotGas = 0;
+  updateSummary();
+});
+
+// start / autorun behavior
+startBtn.addEventListener('click', async ()=>{
+  await runAutoSequence(1); // single run when clicked
+});
+
+// run sequence with auto logic (n times then prompt)
+async function runAutoSequence(requestedRuns=1){
+  const shouldAuto = autorun.checked;
+  let runs = requestedRuns;
+  if(shouldAuto){
+    runs = 5; // default auto-run 5 times
+  }
+  for(let i=0;i<runs;i++){
+    runSimulationSingle();
+    // small delay for visualization (optional)
+    await new Promise(r=>setTimeout(r, 350));
+  }
+
+  if(shouldAuto){
+    // after 5 runs ask user
+    const cont = confirm('Auto-run completed 5 runs. Continue auto-run?');
+    if(!cont){
+      autorun.checked = false; // turn off auto
+      log('Auto-run turned off by user.');
+      return;
+    } else {
+      // continue another 5 runs (recursive)
+      await runAutoSequence(5);
+    }
+  }
+}
+
+// auto-run on load
+window.addEventListener('load', ()=>{
+  createSlots();
+  // small safety: if autorun is checked in UI, start
+  if(autorun.checked){
+    setTimeout(()=>startBtn.click(), 700);
+  }
+});
