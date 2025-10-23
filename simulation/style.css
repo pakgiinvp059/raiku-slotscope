@@ -18,20 +18,21 @@ header {
   margin: 4px 0 0;
 }
 
+/* CONTROL BAR */
 #controls {
   background: #ffffff;
   border-radius: 12px;
-  padding: 14px 18px;
+  padding: 16px 24px;
   margin: 25px auto;
-  max-width: 950px;
+  max-width: 1200px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
-.controls-row {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin: 10px 0;
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: center;
+  text-align: center;
 }
 .btn-primary {
   background: linear-gradient(90deg, #0078ff, #00d4ff);
@@ -51,12 +52,13 @@ header {
   cursor: pointer;
 }
 
+/* TIMELINE */
 .grid-timeline {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 12px;
   margin: 0 auto;
-  max-width: 1000px;
+  max-width: 1100px;
   text-align: center;
 }
 .slot {
@@ -84,12 +86,13 @@ header {
 .slot.failed { background: #ffecec; border-color: #ff4444; }
 .slot.pending { background: #fff8e2; border-color: #ffb600; }
 
+/* BLUEPRINT */
 #blueprint {
   background: #ffffff;
   border-radius: 10px;
   margin: 25px auto;
   padding: 12px;
-  max-width: 820px;
+  max-width: 850px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
   text-align: center;
 }
@@ -112,10 +115,11 @@ header {
   align-self: center;
 }
 
+/* CHART */
 #chart-section {
   text-align: center;
   margin: 30px auto;
-  max-width: 980px;
+  max-width: 1100px;
 }
 #txChart {
   width: 100%;
@@ -126,6 +130,7 @@ header {
   color: #666;
 }
 
+/* METRICS */
 .metrics {
   display: flex;
   justify-content: center;
@@ -147,7 +152,7 @@ header {
   background: #fff;
   border: 1px solid #e3ecff;
   border-radius: 8px;
-  max-width: 950px;
+  max-width: 1000px;
   margin: 0 auto 30px;
   padding: 10px;
   height: 160px;
