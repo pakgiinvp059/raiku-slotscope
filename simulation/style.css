@@ -24,10 +24,9 @@ button {
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
+  margin: 0 4px;
 }
-button:hover {
-  background: #0056b3;
-}
+button:hover { background: #0056b3; }
 
 .slots {
   display: flex;
@@ -57,29 +56,6 @@ button:hover {
 .blue { background: #2980b9; }
 .teal { background: #16a085; }
 
-.blueprint {
-  background: white;
-  border-radius: 10px;
-  margin: 20px auto;
-  width: 90%;
-  padding: 15px;
-}
-.steps {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-.step {
-  background: #f7f9fc;
-  border-radius: 10px;
-  padding: 8px 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  width: 130px;
-  font-size: 13px;
-}
-.arrow { font-size: 18px; }
-
 .charts {
   display: flex;
   justify-content: center;
@@ -95,18 +71,8 @@ button:hover {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   padding: 10px;
 }
-.chart-box.large {
-  flex: 3;
-  height: 300px;
-}
-.chart-box.small {
-  flex: 1;
-  height: 300px;
-}
-.legend {
-  margin-top: 5px;
-  font-size: 13px;
-}
+.chart-box.large { flex: 7; height: 300px; }
+.chart-box.small { flex: 3; height: 300px; }
 
 .summary {
   display: flex;
@@ -123,8 +89,14 @@ button:hover {
   width: 150px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
-.box span {
-  font-size: 18px;
-  font-weight: 600;
-  color: #007bff;
+.box span { font-size: 18px; font-weight: 600; color: #007bff; }
+
+.comparison {
+  background: white;
+  border-radius: 10px;
+  margin: 20px auto;
+  width: 60%;
+  padding: 15px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
+.hidden { display: none; }
