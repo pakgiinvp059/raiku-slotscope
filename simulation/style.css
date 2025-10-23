@@ -19,11 +19,19 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   background: linear-gradient(90deg, #06b6d4, #0ea5e9);
   color: white;
   text-align: center;
-  padding: 20px 0;
+  padding: 25px 0;
   box-shadow: var(--shadow);
 }
-.topbar h1 { font-size: 26px; margin-bottom: 4px; }
-.topbar p { font-size: 14px; opacity: 0.9; }
+.topbar h1 {
+  font-size: 38px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.topbar h2 {
+  font-size: 20px;
+  font-weight: 400;
+  opacity: 0.9;
+}
 
 .card {
   background: var(--card);
@@ -32,6 +40,7 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   box-shadow: var(--shadow);
   margin-bottom: 16px;
 }
+
 .controls-row {
   display: flex;
   align-items: center;
@@ -50,10 +59,8 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   color: #fff;
   font-weight: 600;
 }
-.mode-toggle label {
-  margin-right: 8px;
-  font-size: 14px;
-}
+.mode-toggle label { margin-right: 8px; }
+
 .slots-row {
   display: flex;
   justify-content: space-between;
@@ -100,12 +107,25 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  align-items: start;
+}
+.chart-block {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 340px;
+  max-height: 340px;
 }
 .chart-block canvas {
-  width: 100%;
+  width: 100% !important;
+  height: 260px !important;
   max-width: 100%;
-  height: 280px;
-  object-fit: contain;
+  display: block;
 }
 
 .summary {
