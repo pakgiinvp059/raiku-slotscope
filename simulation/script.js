@@ -140,7 +140,7 @@ function simulateOnce() {
       updateCharts();
       updateUI();
     }, delay);
-    delay += 2; // ⏱ thêm độ trễ nhẹ để mô phỏng xử lý thực
+    delay += 2;
   }
 }
 
@@ -208,15 +208,3 @@ initSlots();
 createCharts();
 updateCharts();
 updateUI();
-
-// thêm 4 chấm nhỏ dưới biểu đồ TX
-const txChartBox = document.querySelector(".chart-block:first-child");
-const legendDots = document.createElement("div");
-legendDots.className = "legend-dots";
-legendDots.innerHTML = `
-  <span class="dot green"></span> Executed 
-  <span class="dot yellow"></span> Pending 
-  <span class="dot red"></span> Failed 
-  <span class="dot black"></span> Total
-`;
-txChartBox.appendChild(legendDots);
