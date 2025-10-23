@@ -15,11 +15,10 @@
 
   <section id="controls">
     <button id="startBtn">🚀 Start Simulation</button>
-    <button id="resetBtn">🔄 Reset</button>
-    <label>TX Count: <input id="txCount" type="number" value="100" min="10" /></label>
     <label><input type="radio" name="mode" value="AOT" checked /> AOT Mode</label>
     <label><input type="radio" name="mode" value="JIT" /> JIT Mode</label>
     <label><input type="checkbox" id="autoRun" /> Auto-run</label>
+    <button id="resetBtn">🔄 Reset</button>
   </section>
 
   <section id="blueprint">
@@ -38,18 +37,18 @@
   </section>
 
   <section id="slots">
-    <h3>Slot Simulation</h3>
+    <h3>Slot Timeline (1–10)</h3>
     <div class="slot-container">
-      <div class="slot" id="slot1"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot2"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot3"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot4"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot5"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot6"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot7"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot8"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot9"><div class="dot"></div><span class="count">0</span></div>
-      <div class="slot" id="slot10"><div class="dot"></div><span class="count">0</span></div>
+      <div class="slot" id="slot1"><div class="dot"></div></div>
+      <div class="slot" id="slot2"><div class="dot"></div></div>
+      <div class="slot" id="slot3"><div class="dot"></div></div>
+      <div class="slot" id="slot4"><div class="dot"></div></div>
+      <div class="slot" id="slot5"><div class="dot"></div></div>
+      <div class="slot" id="slot6"><div class="dot"></div></div>
+      <div class="slot" id="slot7"><div class="dot"></div></div>
+      <div class="slot" id="slot8"><div class="dot"></div></div>
+      <div class="slot" id="slot9"><div class="dot"></div></div>
+      <div class="slot" id="slot10"><div class="dot"></div></div>
     </div>
   </section>
 
@@ -57,13 +56,16 @@
     <h3>Transaction Metrics</h3>
     <canvas id="txChart"></canvas>
 
-    <h3>Gas Comparison</h3>
+    <h3>Gas Metrics (AOT vs JIT)</h3>
     <canvas id="gasChart"></canvas>
 
     <div id="summary">
-      <strong>Total TX:</strong> <span id="totalTx">0</span> |
-      <strong>AOT Gas (SOL):</strong> <span id="totalGasAOT">0.0000</span> |
-      <strong>JIT Gas (SOL):</strong> <span id="totalGasJIT">0.0000</span>
+      ⚫ Total: <span id="totalTx">0</span> |
+      🟡 Pending: <span id="pendingTx">0</span> |
+      🟢 Executed: <span id="executedTx">0</span> |
+      🔴 Failed: <span id="failedTx">0</span> |
+      🟩 AOT Gas (SOL): <span id="aotGas">0.0000</span> |
+      🟦 JIT Gas (SOL): <span id="jitGas">0.0000</span>
     </div>
   </section>
 
