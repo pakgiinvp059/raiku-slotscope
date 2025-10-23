@@ -1,22 +1,16 @@
 let slots = [];
-let txRecords = [];
+let txChart;
 
-const timeline = document.getElementById("timeline");
 const log = document.getElementById("log");
-const startBtn = document.getElementById("startBtn");
-const resetBtn = document.getElementById("resetBtn");
-const modeAot = document.getElementById("modeAot");
 const txCountInput = document.getElementById("txCount");
-const scenarioSel = document.getElementById("scenario");
-const autoRun = document.getElementById("autoRun");
-
-let txChart, ctx;
+const modeAot = document.getElementById("modeAot");
 
 function addLog(msg) {
   log.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + log.innerHTML;
 }
 
 function initSlots() {
+  const timeline = document.getElementById("timeline");
   timeline.innerHTML = "";
   slots = [];
   for (let i = 1; i <= 10; i++) {
@@ -30,26 +24,20 @@ function initSlots() {
         <span class="badge fail" id="slot-${i}-fail">0</span>
       </div>`;
     timeline.appendChild(el);
-    slots.push({ id: i, el, counts: { exec: 0, pend: 0, fail: 0 } });
+    slots.push({ id: i, el, exec: 0, fail: 0 });
   }
 }
 
-function setSlotState(slot, state) {
-  slot.el.classList.remove("executed", "failed", "pending");
-  if (state !== "idle") slot.el.classList.add(state);
-}
-
 function initChart() {
-  ctx = document.getElementById("txChart").getContext("2d");
+  const ctx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(ctx, {
     type: "line",
     data: {
       labels: [],
       datasets: [
-        { label: "Total TX", borderColor: "#333", data: [] },
-        { label: "Pending TX", borderColor: "#ffb600", data: [] },
-        { label: "Executed TX", borderColor: "#22bb55", data: [] },
-        { label: "Failed TX", borderColor: "#ff4444", data: [] },
+        { label: "Total TX", borderColor: "#333", data: [], tension: 0.4 },
+        { label: "Executed", borderColor: "#22bb55", data: [], tension: 0.4 },
+        { label: "Failed", borderColor: "#ff4444", data: [], tension: 0.4 },
       ],
     },
     options: {
@@ -66,59 +54,62 @@ function initChart() {
 function updateChart(slot, total, exec, fail) {
   txChart.data.labels.push("Slot " + slot);
   txChart.data.datasets[0].data.push(total);
-  txChart.data.datasets[1].data.push(total - exec - fail);
-  txChart.data.datasets[2].data.push(exec);
-  txChart.data.datasets[3].data.push(fail);
+  txChart.data.datasets[1].data.push(exec);
+  txChart.data.datasets[2].data.push(fail);
   txChart.update();
 }
 
 async function simulate() {
-  const mode = modeAot.checked ? "AOT" : "JIT";
   const txCount = Number(txCountInput.value);
   const perSlot = Math.ceil(txCount / 10);
+  const isAOT = modeAot.checked;
 
-  addLog(`Simulation started (${mode}) — ${txCount} TX`);
+  let totalExec = 0, totalFail = 0;
+
+  addLog(`🚀 Simulation started in ${isAOT ? "AOT" : "JIT"} mode with ${txCount} TX`);
 
   for (let slot of slots) {
-    setSlotState(slot, "pending");
     let exec = 0, fail = 0;
+    const chance = isAOT ? 0.9 : 0.7;
 
     for (let i = 0; i < perSlot; i++) {
-      const chance = mode === "AOT" ? 0.9 : 0.7;
-      const success = Math.random() < chance;
-      if (success) {
-        exec++;
-        slot.counts.exec++;
-      } else {
-        fail++;
-        slot.counts.fail++;
-      }
+      Math.random() < chance ? exec++ : fail++;
     }
 
-    document.getElementById(`slot-${slot.id}-exec`).textContent = slot.counts.exec;
-    document.getElementById(`slot-${slot.id}-fail`).textContent = slot.counts.fail;
-    document.getElementById(`slot-${slot.id}-pend`).textContent = 0;
+    slot.exec = exec;
+    slot.fail = fail;
+    totalExec += exec;
+    totalFail += fail;
+
+    document.getElementById(`slot-${slot.id}-exec`).textContent = exec;
+    document.getElementById(`slot-${slot.id}-fail`).textContent = fail;
 
     updateChart(slot.id, perSlot, exec, fail);
-    setSlotState(slot, exec > 0 ? "executed" : "failed");
-
     await new Promise((r) => setTimeout(r, 200));
-    setSlotState(slot, "idle");
   }
 
-  addLog("✅ Simulation complete.");
+  const gas = (isAOT ? 0.0002 : 0.0003) * txCount;
+  document.getElementById("m-exec").textContent = totalExec;
+  document.getElementById("m-fail").textContent = totalFail;
+  document.getElementById("m-total").textContent = txCount;
+  document.getElementById("m-gas").textContent = gas.toFixed(5);
+
+  addLog(`✅ Completed: ${totalExec} executed, ${totalFail} failed | Est. gas ${gas.toFixed(5)} SOL`);
 }
 
-startBtn.onclick = simulate;
-resetBtn.onclick = () => {
+document.getElementById("startBtn").onclick = simulate;
+document.getElementById("resetBtn").onclick = () => {
   initSlots();
   txChart.destroy();
   initChart();
+  document.getElementById("m-exec").textContent = 0;
+  document.getElementById("m-fail").textContent = 0;
+  document.getElementById("m-total").textContent = 0;
+  document.getElementById("m-gas").textContent = "0.0000";
   addLog("🔄 Reset complete.");
 };
 
 window.onload = () => {
   initSlots();
   initChart();
-  if (autoRun.checked) simulate();
 };
