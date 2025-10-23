@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raiku SlotScope — Pro+ Realistic Simulation</title>
+  <title>Raiku SlotScope — Deterministic Execution Simulator</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
-    <h1>🪐 Raiku SlotScope — Pro+ Realistic Simulation</h1>
-    <p class="subtitle">Deterministic & Economic Simulation of Execution on Solana (AOT vs JIT, Congestion & Gas)</p>
+    <h1>🪐 Raiku SlotScope — Deterministic Execution Simulator</h1>
+    <p class="subtitle">
+      Visual & Economic Simulation of Deterministic Execution on Solana (AOT vs JIT)
+    </p>
   </header>
 
   <section id="controls">
@@ -21,17 +23,16 @@
         <input type="checkbox" id="modeAot">
         AOT Mode (Ahead-of-Time)
         <span class="tooltiptext">
-          Reserves slots ahead of execution.<br>
-          ✅ More reliable, 💰 slightly higher gas.<br>
-          ⚙️ Perfect for critical TXs.
+          Pre-schedules transactions in advance.<br>
+          ✅ Stable & deterministic execution.<br>
+          💰 Slightly higher gas fee per slot.
         </span>
       </label>
 
       <label>Scenario:
         <select id="scenario">
           <option value="normal">Normal</option>
-          <option value="highfee">High Fee Market</option>
-          <option value="congestion">Network Congestion</option>
+          <option value="congestion">Congestion</option>
         </select>
       </label>
 
@@ -59,7 +60,7 @@
       <div class="arrow small">➡️</div>
       <div class="step small">⏱ Slot Reservation<br><span>Guaranteed Order</span></div>
       <div class="arrow small">➡️</div>
-      <div class="step small">🪐 Solana Chain<br><span>Deterministic Execution</span></div>
+      <div class="step small">🔗 Solana Chain<br><span>Deterministic Execution</span></div>
       <div class="arrow small">➡️</div>
       <div class="step small">✅ TX Confirmed<br><span>Finality</span></div>
     </div>
@@ -68,6 +69,12 @@
   <section id="chart-section">
     <h3>📊 Transaction Metrics</h3>
     <canvas id="txChart"></canvas>
+    <div class="chart-legend">
+      <span class="legend-item black">⬛ Total TX</span>
+      <span class="legend-item green">🟩 Executed</span>
+      <span class="legend-item red">🟥 Failed</span>
+      <span class="legend-item yellow">🟨 Pending</span>
+    </div>
   </section>
 
   <section id="metrics-section">
@@ -82,7 +89,7 @@
   </section>
 
   <footer>
-    <small>Built by @pakgiinvp059 for Raiku Inevitable Ideathon</small>
+    <small>Built by @pakgiinvp059 for Raiku Ideathon</small>
   </footer>
 
   <script src="script.js"></script>
