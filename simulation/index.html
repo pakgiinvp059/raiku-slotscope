@@ -37,35 +37,45 @@
   </section>
 
   <section id="slots">
-    <h3>Slot Timeline (1–10)</h3>
     <div class="slot-container">
-      <div class="slot" id="slot1"><div class="dot"></div></div>
-      <div class="slot" id="slot2"><div class="dot"></div></div>
-      <div class="slot" id="slot3"><div class="dot"></div></div>
-      <div class="slot" id="slot4"><div class="dot"></div></div>
-      <div class="slot" id="slot5"><div class="dot"></div></div>
-      <div class="slot" id="slot6"><div class="dot"></div></div>
-      <div class="slot" id="slot7"><div class="dot"></div></div>
-      <div class="slot" id="slot8"><div class="dot"></div></div>
-      <div class="slot" id="slot9"><div class="dot"></div></div>
-      <div class="slot" id="slot10"><div class="dot"></div></div>
+      <div class="slot" id="slot1"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot2"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot3"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot4"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot5"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot6"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot7"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot8"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot9"><div class="dot"></div><div class="tx">0/0/0</div></div>
+      <div class="slot" id="slot10"><div class="dot"></div><div class="tx">0/0/0</div></div>
     </div>
   </section>
 
   <section id="metrics">
-    <h3>Transaction Metrics</h3>
-    <canvas id="txChart"></canvas>
+    <div class="charts">
+      <div class="chart-box">
+        <h3>Transaction Metrics</h3>
+        <canvas id="txChart"></canvas>
+        <div class="legend">
+          <span class="dot green"></span> Executed
+          <span class="dot yellow"></span> Pending
+          <span class="dot red"></span> Failed
+        </div>
+      </div>
 
-    <h3>Gas Metrics (AOT vs JIT)</h3>
-    <canvas id="gasChart"></canvas>
+      <div class="chart-box">
+        <h3>Gas Metrics</h3>
+        <canvas id="gasChart"></canvas>
+      </div>
+    </div>
 
     <div id="summary">
-      ⚫ Total: <span id="totalTx">0</span> |
-      🟡 Pending: <span id="pendingTx">0</span> |
-      🟢 Executed: <span id="executedTx">0</span> |
-      🔴 Failed: <span id="failedTx">0</span> |
+      🟢 Executed TX: <span id="executedTx">0</span> |
+      🔴 Failed TX: <span id="failedTx">0</span> |
+      🟡 Pending TX: <span id="pendingTx">0</span> |
+      🟦 JIT Gas (SOL): <span id="jitGas">0.0000</span> |
       🟩 AOT Gas (SOL): <span id="aotGas">0.0000</span> |
-      🟦 JIT Gas (SOL): <span id="jitGas">0.0000</span>
+      ⚫ Total Gas (SOL): <span id="totalGas">0.0000</span>
     </div>
   </section>
 
