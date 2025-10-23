@@ -25,7 +25,7 @@
         </select>
       </label>
       <label>TX Count:
-        <input id="txCount" type="number" min="1" max="200" value="10" />
+        <input id="txCount" type="number" min="10" max="500" value="100" />
       </label>
     </div>
     <div class="controls-row">
@@ -64,8 +64,12 @@
   </section>
 
   <section id="metrics-section">
-    <h3>📈 Summary & Log</h3>
-    <div id="metrics" class="metrics"></div>
+    <div class="metrics">
+      <div class="metric"><div class="label">Executed</div><div class="value" id="m-exec">0</div></div>
+      <div class="metric"><div class="label">Failed</div><div class="value" id="m-fail">0</div></div>
+      <div class="metric"><div class="label">Total</div><div class="value" id="m-total">0</div></div>
+      <div class="metric"><div class="label">Est. Gas (SOL)</div><div class="value" id="m-gas">0.0000</div></div>
+    </div>
     <div id="log" class="logbox"></div>
   </section>
 
