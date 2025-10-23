@@ -2,89 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Raiku SlotScope — Deterministic Simulation</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="container">
-      <h1>🪐 Raiku SlotScope</h1>
-      <h2>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</h2>
+  <div class="topbar">
+    <h1>🪐 Raiku SlotScope</h1>
+    <h2>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</h2>
+  </div>
+
+  <div class="container">
+    <div class="card controls-row">
+      <button id="startBtn" class="btn primary">🚀 Start Simulation</button>
+      <label><input type="radio" id="jitMode" name="mode" checked /> JIT</label>
+      <label><input type="radio" id="aotMode" name="mode" /> AOT</label>
+      <label>Scenario:
+        <select id="scenario">
+          <option value="normal">Normal</option>
+          <option value="high">High Fee</option>
+          <option value="congested">Congested</option>
+        </select>
+      </label>
+      <label>TX Count: <input id="txCount" type="number" value="100" /></label>
+      <label><input id="autorun" type="checkbox" /> Auto-run</label>
+      <button id="exportBtn" class="btn">📊 Export</button>
+      <button id="resetBtn" class="btn">🔄 Reset</button>
     </div>
-  </header>
 
-  <main class="container">
-    <section class="controls card">
-      <div class="controls-row">
-        <button id="startBtn" class="btn primary">🚀 Start Simulation</button>
+    <div class="card slots-row" id="slotsRow"></div>
 
-        <div class="mode-toggle">
-          <label><input type="radio" name="mode" id="jitMode" checked> JIT</label>
-          <label><input type="radio" name="mode" id="aotMode"> AOT</label>
-        </div>
-
-        <label>Scenario:
-          <select id="scenario">
-            <option value="normal">Normal</option>
-            <option value="high">High Fee</option>
-            <option value="congested">Congested</option>
-          </select>
-        </label>
-
-        <label>TX Count:
-          <input id="txCount" type="number" value="100" min="1" />
-        </label>
-
-        <label><input id="autorun" type="checkbox"> Auto-run</label>
-        <div class="spacer"></div>
-        <button id="exportBtn" class="btn">📥 Export</button>
-        <button id="resetBtn" class="btn">🔄 Reset</button>
-      </div>
-    </section>
-
-    <section class="card slots-container">
-      <div id="slotsRow" class="slots-row"></div>
-    </section>
-
-    <section class="card blueprint">
-      <h3>🧩 Deterministic Execution Blueprint</h3>
+    <div class="card blueprint">
+      <h3>🍀 Deterministic Execution Blueprint</h3>
       <div class="flow">
-        <div class="bp-box">👤 User<br><span>Submit TX</span></div>
+        <div class="bp-box">👤 User<br />Submit TX</div>
         <div class="arrow">→</div>
-        <div class="bp-box">🧠 Raiku Node<br><span>AOT / JIT Scheduling</span></div>
+        <div class="bp-box">🧠 Raiku Node<br />AOT / JIT Scheduling</div>
         <div class="arrow">→</div>
-        <div class="bp-box">⏱ Slot Reservation<br><span>Guaranteed Order</span></div>
+        <div class="bp-box">⏱ Slot Reservation<br />Guaranteed Order</div>
         <div class="arrow">→</div>
-        <div class="bp-box">🪐 Solana Chain<br><span>Deterministic Execution</span></div>
+        <div class="bp-box">🪐 Solana Chain<br />Deterministic Execution</div>
         <div class="arrow">→</div>
-        <div class="bp-box">✅ TX Confirmed<br><span>Finality</span></div>
+        <div class="bp-box">✅ TX Confirmed<br />Finality</div>
       </div>
-    </section>
+    </div>
 
-    <section class="card metrics">
+    <div class="metrics">
       <div class="chart-block">
-        <h4>📈 Transaction Metrics</h4>
         <canvas id="txChart"></canvas>
+        <div class="legend-dots">
+          <span class="dot green"></span> Executed
+          <span class="dot yellow"></span> Pending
+          <span class="dot red"></span> Failed
+        </div>
       </div>
       <div class="chart-block">
-        <h4>⛽ Gas Metrics</h4>
         <canvas id="gasChart"></canvas>
+        <div class="legend-dots">
+          <span class="dot green"></span> AOT Gas
+          <span class="dot blue"></span> JIT Gas
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section class="card summary">
-      <div class="sum-block big" id="executedCnt">Executed TX<br><strong>0</strong></div>
-      <div class="sum-block big" id="failedCnt">Failed TX<br><strong>0</strong></div>
-      <div class="sum-block big" id="pendingCnt">Pending TX<br><strong>0</strong></div>
-      <div class="sum-block" id="jitGas">JIT Gas (SOL)<br><strong>0.0000</strong></div>
-      <div class="sum-block" id="aotGas">AOT Gas (SOL)<br><strong>0.0000</strong></div>
-      <div class="sum-block" id="totalGas">Total Gas (SOL)<br><strong>0.0000</strong></div>
-    </section>
-  </main>
-
-  <footer class="footer">© 2025 Raiku Research — SlotScope Simulation</footer>
+    <div class="card summary">
+      <div class="sum-block" id="executedCnt">Executed TX<br /><strong>0</strong></div>
+      <div class="sum-block" id="failedCnt">Failed TX<br /><strong>0</strong></div>
+      <div class="sum-block" id="pendingCnt">Pending TX<br /><strong>0</strong></div>
+      <div class="sum-block" id="jitGas">JIT Gas (SOL)<br /><strong>0.0000</strong></div>
+      <div class="sum-block" id="aotGas">AOT Gas (SOL)<br /><strong>0.0000</strong></div>
+      <div class="sum-block" id="totalGas">Total Gas (SOL)<br /><strong>0.0000</strong></div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
