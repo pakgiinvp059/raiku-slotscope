@@ -7,17 +7,15 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-
 <body>
   <header class="topbar">
     <div class="container">
       <h1>🪐 Raiku SlotScope</h1>
-      <p>Visual Simulation: AOT vs JIT — Deterministic Execution (Solana-like)</p>
+      <h2>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</h2>
     </div>
   </header>
 
   <main class="container">
-    <!-- Controls -->
     <section class="controls card">
       <div class="controls-row">
         <button id="startBtn" class="btn primary">🚀 Start Simulation</button>
@@ -46,12 +44,10 @@
       </div>
     </section>
 
-    <!-- Slots -->
     <section class="card slots-container">
       <div id="slotsRow" class="slots-row"></div>
     </section>
 
-    <!-- Blueprint -->
     <section class="card blueprint">
       <h3>🧩 Deterministic Execution Blueprint</h3>
       <div class="flow">
@@ -67,7 +63,6 @@
       </div>
     </section>
 
-    <!-- Charts -->
     <section class="card metrics">
       <div class="chart-block">
         <h4>📈 Transaction Metrics</h4>
@@ -79,7 +74,6 @@
       </div>
     </section>
 
-    <!-- Summary -->
     <section class="card summary">
       <div class="sum-block big" id="executedCnt">Executed TX<br><strong>0</strong></div>
       <div class="sum-block big" id="failedCnt">Failed TX<br><strong>0</strong></div>
@@ -90,9 +84,7 @@
     </section>
   </main>
 
-  <footer class="footer">
-    © 2025 Raiku Research — SlotScope Simulation
-  </footer>
+  <footer class="footer">© 2025 Raiku Research — SlotScope Simulation</footer>
 
   <script src="script.js"></script>
 </body>
