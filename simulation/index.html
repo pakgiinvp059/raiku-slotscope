@@ -1,81 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Raiku SlotScope — Deterministic Simulation</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raiku SlotScope — Deterministic Simulation</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+  <header>
+    <h1>🚀 Raiku SlotScope — Deterministic Simulation</h1>
+    <p>Visual & Economic Simulation: AOT vs JIT Execution (Solana-like)</p>
+  </header>
 
-<header>
-  <h1>🚀 Raiku SlotScope — Deterministic Simulation</h1>
-  <p>Visual & Economic Simulation: AOT vs JIT Execution (Solana-like)</p>
-</header>
-
-<div class="container">
-
-  <div class="card controls-row">
-    <button class="btn-primary" id="startBtn">Start Simulation</button>
-    <label><input type="checkbox" id="aotMode"> AOT Mode</label>
-    <label>Scenario:
-      <select id="scenario">
-        <option value="normal">Normal</option>
-        <option value="highload">High Load</option>
-        <option value="congested">Congested</option>
-      </select>
-    </label>
-    <label>TX Count: <input type="number" id="txCount" value="100" min="1" max="1000"></label>
-    <label><input type="checkbox" id="autoRun"> Auto-run on load</label>
-    <button class="btn-outline" id="exportBtn">Export CSV</button>
-    <button class="btn-outline" id="resetBtn">Reset</button>
-  </div>
-
-  <div class="slots-grid" id="slots"></div>
-
-  <div class="card blueprint">
-    <h3>🧩 Deterministic Execution Blueprint</h3>
-    <div class="pipeline">
-      <div class="step">👤 User<br><small>Submit TX</small></div>
-      <div class="arrow">➡️</div>
-      <div class="step">🧠 Raiku Node<br><small>AOT / JIT Scheduling</small></div>
-      <div class="arrow">➡️</div>
-      <div class="step">⏱ Slot Reservation<br><small>Guaranteed Order</small></div>
-      <div class="arrow">➡️</div>
-      <div class="step">🪐 Solana Chain<br><small>Deterministic Execution</small></div>
-      <div class="arrow">➡️</div>
-      <div class="step">✅ TX Confirmed<br><small>Finality</small></div>
+  <div class="container">
+    <div class="card controls-row">
+      <button class="btn-primary" id="startBtn">Start Simulation</button>
+      <label><input type="checkbox" id="aotMode" /> AOT Mode</label>
+      <label>Scenario:
+        <select id="scenario">
+          <option value="normal">Normal</option>
+          <option value="highload">High Load</option>
+          <option value="congested">Congested</option>
+        </select>
+      </label>
+      <label>TX Count:
+        <input type="number" id="txCount" value="100" min="1" max="1000" />
+      </label>
+      <label><input type="checkbox" id="autoRun" /> Auto-run on load</label>
+      <button class="btn-outline" id="exportBtn">Export CSV</button>
+      <button class="btn-outline" id="resetBtn">Reset</button>
     </div>
-  </div>
 
-  <div class="card chart-card">
-    <h3>📊 Transaction Metrics</h3>
-    <canvas id="txChart"></canvas>
-    <div class="chart-legend">
-      <span>⚫ Total</span>
-      <span>🟢 Executed</span>
-      <span>🔴 Failed</span>
-      <span>🟡 Pending</span>
+    <div class="slots-grid" id="slots"></div>
+
+    <div class="card blueprint">
+      <h3>🧩 Deterministic Execution Blueprint</h3>
+      <div class="pipeline">
+        <div class="step">👤 User<br /><small>Submit TX</small></div>
+        <div class="arrow">➡️</div>
+        <div class="step">
+          🧠 Raiku Node<br /><small>AOT / JIT Scheduling</small>
+        </div>
+        <div class="arrow">➡️</div>
+        <div class="step">
+          ⏱ Slot Reservation<br /><small>Guaranteed Order</small>
+        </div>
+        <div class="arrow">➡️</div>
+        <div class="step">
+          🪐 Solana Chain<br /><small>Deterministic Execution</small>
+        </div>
+        <div class="arrow">➡️</div>
+        <div class="step">✅ TX Confirmed<br /><small>Finality</small></div>
+      </div>
     </div>
+
+    <div class="card chart-card">
+      <h3>📊 Transaction Metrics</h3>
+      <canvas id="txChart"></canvas>
+      <div class="chart-legend">
+        <span>⚫ Total</span>
+        <span>🟢 Executed</span>
+        <span>🔴 Failed</span>
+        <span>🟡 Pending</span>
+      </div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric highlight-green">
+        <div class="label">AOT Gas (SOL)</div>
+        <div id="aotGas">0.0000</div>
+      </div>
+      <div class="metric highlight-blue">
+        <div class="label">Total Gas (SOL)</div>
+        <div id="totalGas">0.0000</div>
+      </div>
+      <div class="metric">
+        <div class="label">Executed TX</div>
+        <div id="execCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="label">Failed TX</div>
+        <div id="failCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="label">Pending TX</div>
+        <div id="pendCount">0</div>
+      </div>
+    </div>
+
+    <div class="card logbox" id="logBox"></div>
   </div>
 
-  <div class="metrics-row">
-    <div class="metric highlight-green"><div class="label">AOT Gas (SOL)</div><div id="aotGas">0.0000</div></div>
-    <div class="metric highlight-blue"><div class="label">Total Gas (SOL)</div><div id="totalGas">0.0000</div></div>
-    <div class="metric"><div class="label">Executed TX</div><div id="execCount">0</div></div>
-    <div class="metric"><div class="label">Failed TX</div><div id="failCount">0</div></div>
-    <div class="metric"><div class="label">Pending TX</div><div id="pendCount">0</div></div>
-  </div>
+  <footer>Built for the Raiku Ideathon Track | Pakgiin © 2025</footer>
 
-  <div class="card logbox" id="logBox"></div>
-
-</div>
-
-<footer>
-  Built for the Raiku Ideathon Track | pakgiinvp059 © 2025
-</footer>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
