@@ -1,8 +1,7 @@
-// Raiku SlotScope Simulation (Compact Layout)
 const SLOT_COUNT = 10;
 let perSlot = [];
 let totals = { exec: 0, fail: 0, pend: 0, gasAOT: 0, gasJIT: 0 };
-let autoCount = 0;
+let txChart, gasChart;
 
 const slotsRow = document.getElementById("slotsRow");
 const startBtn = document.getElementById("startBtn");
@@ -11,7 +10,6 @@ const exportBtn = document.getElementById("exportBtn");
 const txCountInput = document.getElementById("txCount");
 const scenarioSel = document.getElementById("scenario");
 const aotChk = document.getElementById("aotChk");
-const jitChk = document.getElementById("jitChk");
 const autorunChk = document.getElementById("autorun");
 
 const execEl = document.querySelector("#executedCnt strong");
@@ -20,8 +18,6 @@ const pendEl = document.querySelector("#pendingCnt strong");
 const aotGasEl = document.querySelector("#aotGas strong");
 const jitGasEl = document.querySelector("#jitGas strong");
 const totalGasEl = document.querySelector("#totalGas strong");
-
-let txChart, gasChart;
 
 function initSlots() {
   slotsRow.innerHTML = "";
@@ -42,8 +38,7 @@ function initSlots() {
         <div class="dot yellow"></div>
         <div class="dot red"></div>
       </div>
-      <div id="slotnum-${i}">0</div>
-    `;
+      <div id="slotnum-${i}">0</div>`;
     slotsRow.appendChild(s);
   }
 }
@@ -58,10 +53,9 @@ function createCharts() {
     data: {
       labels,
       datasets: [
-        { label: "Total", borderColor: "#111827", data: [] },
-        { label: "Pending", borderColor: "#f59e0b", data: [] },
-        { label: "Executed", borderColor: "#10b981", data: [] },
-        { label: "Failed", borderColor: "#ef4444", data: [] },
+        { label: "Executed", borderColor: "#10b981", data: [], tension: 0.3 },
+        { label: "Pending", borderColor: "#f59e0b", data: [], tension: 0.3 },
+        { label: "Failed", borderColor: "#ef4444", data: [], tension: 0.3 },
       ],
     },
     options: { responsive: true, maintainAspectRatio: false },
@@ -72,44 +66,18 @@ function createCharts() {
     data: {
       labels,
       datasets: [
-        { label: "AOT Gas", backgroundColor: "#10b981aa", data: [] },
-        { label: "JIT Gas", backgroundColor: "#3b82f6aa", data: [] },
+        { label: "AOT Gas", backgroundColor: "#10b981", data: [] },
+        { label: "JIT Gas", backgroundColor: "#3b82f6", data: [] },
       ],
     },
     options: { responsive: true, maintainAspectRatio: false },
   });
 }
 
-function updateCharts() {
-  const totalArr = [],
-    pendArr = [],
-    execArr = [],
-    failArr = [],
-    gasA = [],
-    gasJ = [];
-  perSlot.forEach((s) => {
-    totalArr.push(s.exec + s.pend + s.fail);
-    pendArr.push(s.pend);
-    execArr.push(s.exec);
-    failArr.push(s.fail);
-    gasA.push(s.gasAOT);
-    gasJ.push(s.gasJIT);
-  });
-  txChart.data.datasets[0].data = totalArr;
-  txChart.data.datasets[1].data = pendArr;
-  txChart.data.datasets[2].data = execArr;
-  txChart.data.datasets[3].data = failArr;
-  txChart.update();
-  gasChart.data.datasets[0].data = gasA;
-  gasChart.data.datasets[1].data = gasJ;
-  gasChart.update();
-}
-
 function simulateOnce() {
   const txCount = parseInt(txCountInput.value) || 100;
   const scenario = scenarioSel.value;
   const isAOT = aotChk.checked;
-
   let pFail = 0.02,
     pPend = 0.03,
     gA = 0.0015,
@@ -119,13 +87,13 @@ function simulateOnce() {
     pFail = 0.05;
     pPend = 0.04;
   } else if (scenario === "congested") {
-    pFail = 0.12;
+    pFail = 0.1;
     pPend = 0.08;
   }
 
   if (isAOT) {
-    pPend *= 0.3;
-    pFail *= 0.5;
+    pPend *= 0.25;
+    pFail *= 0.4;
     gA *= 3;
   }
 
@@ -156,6 +124,28 @@ function simulateOnce() {
   updateUI();
 }
 
+function updateCharts() {
+  const execArr = [],
+    pendArr = [],
+    failArr = [],
+    gasA = [],
+    gasJ = [];
+  perSlot.forEach((s) => {
+    execArr.push(s.exec);
+    pendArr.push(s.pend);
+    failArr.push(s.fail);
+    gasA.push(s.gasAOT);
+    gasJ.push(s.gasJIT);
+  });
+  txChart.data.datasets[0].data = execArr;
+  txChart.data.datasets[1].data = pendArr;
+  txChart.data.datasets[2].data = failArr;
+  gasChart.data.datasets[0].data = gasA;
+  gasChart.data.datasets[1].data = gasJ;
+  txChart.update();
+  gasChart.update();
+}
+
 function updateUI() {
   perSlot.forEach((s, i) => {
     document.getElementById(`slotnum-${i}`).textContent = s.exec;
@@ -168,24 +158,13 @@ function updateUI() {
   totalGasEl.textContent = (totals.gasAOT + totals.gasJIT).toFixed(4);
 }
 
-startBtn.addEventListener("click", async () => {
-  simulateOnce();
-  if (autorunChk.checked) {
-    for (autoCount = 0; autoCount < 5; autoCount++) {
-      await new Promise((r) => setTimeout(r, 300));
-      simulateOnce();
-    }
-    if (!confirm("Auto-run done. Continue?")) autorunChk.checked = false;
-  }
-});
-
+startBtn.addEventListener("click", simulateOnce);
 resetBtn.addEventListener("click", () => {
   totals = { exec: 0, fail: 0, pend: 0, gasAOT: 0, gasJIT: 0 };
   initSlots();
   updateCharts();
   updateUI();
 });
-
 exportBtn.addEventListener("click", () => {
   let csv = "Slot,Executed,Pending,Failed,AOT Gas,JIT Gas\n";
   perSlot.forEach(
