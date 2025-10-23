@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raiku SlotScope — Pro+ Research Edition</title>
+  <title>Raiku SlotScope — Pro+ Realistic Simulation</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
-    <h1>🪐 Raiku SlotScope — Pro+ Research Edition</h1>
-    <p class="subtitle">Deterministic & Economic Simulation of Execution on Solana (AOT vs JIT, Congestion & Gas Cost)</p>
+    <h1>🪐 Raiku SlotScope — Pro+ Realistic Simulation</h1>
+    <p class="subtitle">Deterministic & Economic Simulation of Execution on Solana (AOT vs JIT, Congestion & Gas)</p>
   </header>
 
   <section id="controls">
@@ -21,10 +21,9 @@
         <input type="checkbox" id="modeAot">
         AOT Mode (Ahead-of-Time)
         <span class="tooltiptext">
-          Reserve slot ahead of execution.<br>
-          ✅ Guaranteed certainty.<br>
-          💰 Slightly higher gas fee but stable.<br>
-          ⚙️ Ideal for critical TXs.
+          Reserves slots ahead of execution.<br>
+          ✅ More reliable, 💰 slightly higher gas.<br>
+          ⚙️ Perfect for critical TXs.
         </span>
       </label>
 
@@ -43,6 +42,7 @@
       <button id="exportBtn" class="btn-outline">📥 Export CSV</button>
       <button id="resetBtn" class="btn-outline">🔄 Reset</button>
     </div>
+
     <div id="aotInfo" class="aot-banner"></div>
   </section>
 
@@ -75,8 +75,8 @@
       <div class="metric"><div class="label">Executed</div><div class="value" id="m-exec">0</div></div>
       <div class="metric"><div class="label">Failed</div><div class="value" id="m-fail">0</div></div>
       <div class="metric"><div class="label">Total</div><div class="value" id="m-total">0</div></div>
-      <div class="metric"><div class="label">AOT Gas (SOL)</div><div class="value" id="m-aotgas">0.00000</div></div>
-      <div class="metric"><div class="label">Total Gas (SOL)</div><div class="value" id="m-gas">0.00000</div></div>
+      <div class="metric highlight-blue"><div class="label">AOT Gas (SOL)</div><div class="value" id="m-aotgas">0.00000</div></div>
+      <div class="metric highlight-orange"><div class="label">Total Gas (SOL)</div><div class="value" id="m-gas">0.00000</div></div>
     </div>
     <div id="log" class="logbox"></div>
   </section>
