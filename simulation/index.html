@@ -12,7 +12,7 @@
   <header class="topbar">
     <div class="container">
       <h1>🪐 Raiku SlotScope</h1>
-      <p>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</p>
+      <p>Visual Simulation: AOT vs JIT — Deterministic Execution (Solana-like)</p>
     </div>
   </header>
 
@@ -21,17 +21,25 @@
     <section class="controls card">
       <div class="controls-row">
         <button id="startBtn" class="btn primary">🚀 Start Simulation</button>
-        <label class="chk"><input id="jitChk" type="checkbox" checked> JIT</label>
-        <label class="chk"><input id="aotChk" type="checkbox"> AOT</label>
-        <label class="small">Scenario:
+
+        <div class="mode-toggle">
+          <label><input type="radio" name="mode" id="jitMode" checked> JIT</label>
+          <label><input type="radio" name="mode" id="aotMode"> AOT</label>
+        </div>
+
+        <label>Scenario:
           <select id="scenario">
             <option value="normal">Normal</option>
             <option value="high">High Fee</option>
             <option value="congested">Congested</option>
           </select>
         </label>
-        <label class="small">TX Count: <input id="txCount" type="number" value="100" min="1" /></label>
-        <label class="chk"><input id="autorun" type="checkbox"> Auto-run</label>
+
+        <label>TX Count:
+          <input id="txCount" type="number" value="100" min="1" />
+        </label>
+
+        <label><input id="autorun" type="checkbox"> Auto-run</label>
         <div class="spacer"></div>
         <button id="exportBtn" class="btn">📥 Export</button>
         <button id="resetBtn" class="btn">🔄 Reset</button>
