@@ -2,51 +2,50 @@ body {
   font-family: "Inter", sans-serif;
   background: #0d1117;
   color: #e0e0e0;
-  margin: 0;
   text-align: center;
+  margin: 0;
 }
 
 header h1 {
   color: #00ffa2;
   font-size: 2.2rem;
-  margin-bottom: 0.2em;
+  margin-bottom: 0.3em;
 }
 
 header h2 {
+  color: #9aa0a6;
   font-size: 1.1rem;
-  color: #aaa;
   margin-top: 0;
 }
 
 #controls {
-  margin: 10px auto 25px;
   background: #1a1f29;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
+  gap: 12px;
+  padding: 12px 20px;
   border-radius: 12px;
+  margin: 10px auto 25px;
 }
 
 button {
   border: none;
-  padding: 8px 16px;
   background: #00ffa2;
   color: #000;
+  padding: 8px 16px;
   border-radius: 8px;
-  cursor: pointer;
   font-weight: bold;
+  cursor: pointer;
 }
-
 button:hover {
-  background: #00c98d;
+  background: #00c88f;
 }
 
 .pipeline {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
   gap: 10px;
+  flex-wrap: wrap;
   font-size: 13px;
 }
 
@@ -55,41 +54,68 @@ button:hover {
   justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin: 10px 0;
+  margin: 15px 0;
 }
 
 .slot {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   background: #1a1f29;
   border-radius: 10px;
+  box-shadow: 0 0 6px #00ffa2;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 0 6px #00ffa2;
 }
-
-.dot {
+.slot .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: #00ffa2;
+  margin-bottom: 3px;
+}
+.slot .tx {
+  font-size: 12px;
+  color: #ccc;
 }
 
-#metrics {
-  width: 90%;
-  max-width: 900px;
-  margin: auto;
+.charts {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.chart-box {
+  width: 420px;
+  background: #1a1f29;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.legend {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.legend .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 0 4px;
+}
+.legend .green { background: #2ecc71; }
+.legend .yellow { background: #f1c40f; }
+.legend .red { background: #e74c3c; }
+
+#summary {
+  margin-top: 15px;
+  font-size: 15px;
+  color: #ddd;
 }
 
 canvas {
   width: 100%;
-  height: 280px;
-  margin-bottom: 15px;
-}
-
-#summary {
-  margin-top: 10px;
-  font-size: 15px;
-  color: #ccc;
+  height: 250px;
 }
