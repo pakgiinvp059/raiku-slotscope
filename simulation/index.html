@@ -1,45 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Raiku SlotScope — Deterministic Simulation</title>
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
   <header class="topbar">
     <div class="container">
       <h1>🪐 Raiku SlotScope — Deterministic Simulation</h1>
-      <p class="sub">Visual & Economic Simulation: AOT vs JIT Execution (Solana-like)</p>
+      <p class="sub">Visual & Economic Simulation: AOT vs JIT execution (Solana-like)</p>
     </div>
   </header>
 
   <main class="container main-content">
-    <section class="controls card">
-      <div class="row">
-        <button id="startBtn" class="btn primary large">🚀 Start Simulation</button>
-        <label><input id="aotMode" type="checkbox" /> AOT Mode</label>
-        <label>Scenario:
+    <!-- Controls -->
+    <section class="controls card center">
+      <div class="controls-row center large">
+        <button id="startBtn" class="btn primary giant">🚀 Start Simulation</button>
+
+        <label class="inline big">
+          <input id="aotMode" type="checkbox" />
+          <span>AOT Mode</span>
+        </label>
+
+        <label class="inline big">Scenario:
           <select id="scenario">
             <option value="normal">Normal</option>
             <option value="high">High Fee Market</option>
             <option value="congested">Congested</option>
           </select>
         </label>
-        <label>TX Count:
+
+        <label class="inline big">TX Count:
           <input id="txCount" type="number" value="100" min="1" />
         </label>
-        <label><input id="autorun" type="checkbox" /> Auto-run</label>
-        <button id="exportCsv" class="btn">📥 Export CSV</button>
-        <button id="resetBtn" class="btn">🔄 Reset</button>
+
+        <label class="inline big">
+          <input id="autorun" type="checkbox" />
+          <span>Auto-run</span>
+        </label>
+
+        <button id="exportCsv" class="btn big">📥 Export CSV</button>
+        <button id="resetBtn" class="btn big">🔄 Reset</button>
       </div>
     </section>
 
-    <section id="slotsWrap" class="slots-row"></section>
+    <!-- Slot boxes -->
+    <section id="slotsWrap" class="slots-row card"></section>
 
+    <!-- Execution Blueprint -->
     <section class="card blueprint">
       <h3>🧩 Deterministic Execution Blueprint</h3>
       <div class="pipeline">
@@ -55,33 +68,38 @@
       </div>
     </section>
 
-    <section class="card chart-card">
-      <h3>📊 Transaction Metrics</h3>
-      <div class="chart-container">
-        <canvas id="txChart"></canvas>
+    <!-- Charts -->
+    <section class="card charts-area">
+      <div class="charts-left">
+        <h3>📊 Transaction Metrics</h3>
+        <div class="chart-container">
+          <canvas id="txChart"></canvas>
+        </div>
+        <div class="legend">⚫ Total &nbsp;&nbsp; 🟡 Pending &nbsp;&nbsp; 🟢 Executed &nbsp;&nbsp; 🔴 Failed</div>
       </div>
-      <h3>⛽ Gas Metrics</h3>
-      <div class="chart-container">
-        <canvas id="gasChart"></canvas>
-      </div>
-      <div class="legend">
-        ⚫ Total &nbsp;&nbsp; 🟡 Pending &nbsp;&nbsp; 🟢 Executed &nbsp;&nbsp; 🔴 Failed
+
+      <div class="charts-right">
+        <h3>⛽ Gas Metrics</h3>
+        <div class="chart-container small">
+          <canvas id="gasChart"></canvas>
+        </div>
+        <div class="gas-legend">🟢 AOT Gas &nbsp;&nbsp; 🔵 JIT Gas</div>
       </div>
     </section>
 
-    <section class="summary card">
-      <div class="summary-row top">
+    <!-- Summary unified -->
+    <section class="summary card unified">
+      <div class="summary-line">
         <div class="stat">Executed TX<div id="executedCount">0</div></div>
         <div class="stat">Failed TX<div id="failedCount">0</div></div>
         <div class="stat">Pending TX<div id="pendingCount">0</div></div>
-      </div>
-      <div class="summary-row bottom">
         <div class="stat">AOT Gas (SOL)<div id="aotGas">0.0000</div></div>
         <div class="stat">JIT Gas (SOL)<div id="jitGas">0.0000</div></div>
         <div class="stat">Total Gas (SOL)<div id="totalGas">0.0000</div></div>
       </div>
     </section>
 
+    <!-- Log -->
     <section class="card log" id="log">
       <h4>📝 Simulation Log</h4>
       <div id="logContent" class="log-content"></div>
@@ -89,7 +107,7 @@
   </main>
 
   <footer class="footer">
-    <div class="container">© Pakgiinvp059 — Raiku SlotScope Demo</div>
+    <div class="container">© pakgiinvp059 — Raiku SlotScope Demo</div>
   </footer>
 
   <script src="script.js"></script>
