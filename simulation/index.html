@@ -33,16 +33,17 @@
 
   <!-- Slots -->
   <div class="slots" id="slots">
-    <div class="slot"><h3>Slot 1</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 2</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 3</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 4</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 5</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 6</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 7</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 8</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 9</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
-    <div class="slot"><h3>Slot 10</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
+    ${Array.from({ length: 10 }, (_, i) => `
+      <div class="slot">
+        <h3>Slot ${i + 1}</h3>
+        <div class="dots">
+          <span class="dot green"></span>
+          <span class="dot orange"></span>
+          <span class="dot red"></span>
+        </div>
+        <div class="slot-value">0</div>
+      </div>
+    `).join("")}
   </div>
 
   <div class="blueprint">
@@ -87,11 +88,11 @@
     <div class="box">Total Gas (SOL)<br><span id="totalGas">0.00000</span></div>
   </div>
 
-  <!-- Hidden comparison box -->
-  <div id="comparison" class="comparison hidden">
-    <h3>📊 So sánh JIT & AOT</h3>
-    <p>JIT Total TX: <span id="jitTxTotal">0</span> — Gas: <span id="jitGasCompare">0.00000</span></p>
-    <p>AOT Total TX: <span id="aotTxTotal">0</span> — Gas: <span id="aotGasCompare">0.00000</span></p>
+  <!-- Comparison Panel -->
+  <div id="comparisonBox" class="comparison hidden">
+    <h3>📊 So sánh hiệu suất</h3>
+    <p><strong>JIT:</strong> <span id="jitTxCompare">0</span> TX — Gas: <span id="jitGasCompare">0.00000</span></p>
+    <p><strong>AOT:</strong> <span id="aotTxCompare">0</span> TX — Gas: <span id="aotGasCompare">0.00000</span></p>
   </div>
 
   <script src="script.js"></script>
