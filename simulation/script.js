@@ -1,237 +1,126 @@
-const SLOT_COUNT = 10;
-let perSlot = [];
-let totals = { exec: 0, fail: 0, pend: 0, gasAOT: 0, gasJIT: 0 };
-let txChart, gasChart;
-let autoTimer = null;
-let autoRuns = 0;
+document.addEventListener("DOMContentLoaded", () => {
+  const startBtn = document.querySelector("#startBtn");
+  const resetBtn = document.querySelector("#resetBtn");
+  const autoRunCheckbox = document.querySelector("#autoRun");
+  const txCountInput = document.querySelector("#txCount");
+  const modeRadios = document.querySelectorAll("input[name='mode']");
 
-const slotsRow = document.getElementById("slotsRow");
-const startBtn = document.getElementById("startBtn");
-const resetBtn = document.getElementById("resetBtn");
-const exportBtn = document.getElementById("exportBtn");
-const txCountInput = document.getElementById("txCount");
-const scenarioSel = document.getElementById("scenario");
-const autorunChk = document.getElementById("autorun");
-const jitMode = document.getElementById("jitMode");
-const aotMode = document.getElementById("aotMode");
+  const ctxTx = document.getElementById("txChart").getContext("2d");
+  const ctxGas = document.getElementById("gasChart").getContext("2d");
 
-const execEl = document.querySelector("#executedCnt strong");
-const failEl = document.querySelector("#failedCnt strong");
-const pendEl = document.querySelector("#pendingCnt strong");
-const aotGasEl = document.querySelector("#aotGas strong");
-const jitGasEl = document.querySelector("#jitGas strong");
-const totalGasEl = document.querySelector("#totalGas strong");
+  const totalTxDisplay = document.querySelector("#totalTx");
+  const totalGasAOTDisplay = document.querySelector("#totalGasAOT");
+  const totalGasJITDisplay = document.querySelector("#totalGasJIT");
 
-function initSlots() {
-  slotsRow.innerHTML = "";
-  perSlot = Array.from({ length: SLOT_COUNT }, () => ({
-    exec: 0,
-    pend: 0,
-    fail: 0,
-    gasAOT: 0,
-    gasJIT: 0,
-  }));
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    const s = document.createElement("div");
-    s.className = "slot";
-    s.innerHTML = `
-      <h4>Slot ${i + 1}</h4>
-      <div class="dots">
-        <div class="dot green"></div>
-        <div class="dot yellow"></div>
-        <div class="dot red"></div>
-      </div>
-      <div class="slot-stats" id="slotstat-${i}">
-        <span class="green-txt">0</span> /
-        <span class="yellow-txt">0</span> /
-        <span class="red-txt">0</span>
-      </div>`;
-    slotsRow.appendChild(s);
-  }
-}
+  let currentMode = "AOT";
+  const autoRunLimit = 5;
 
-function createCharts() {
-  const txCtx = document.getElementById("txChart");
-  const gasCtx = document.getElementById("gasChart");
-  const labels = Array.from({ length: SLOT_COUNT }, (_, i) => `Slot ${i + 1}`);
+  let totalTx = 0, totalGasAOT = 0, totalGasJIT = 0;
 
-  txChart = new Chart(txCtx, {
+  modeRadios.forEach(radio => {
+    radio.addEventListener("change", () => {
+      currentMode = radio.value;
+      resetSimulation();
+    });
+  });
+
+  const txChart = new Chart(ctxTx, {
     type: "line",
     data: {
-      labels,
+      labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: "Executed", borderColor: "#10b981", data: [], tension: 0.3, pointRadius: 3 },
-        { label: "Pending", borderColor: "#f59e0b", data: [], tension: 0.3, pointRadius: 3 },
-        { label: "Failed", borderColor: "#ef4444", data: [], tension: 0.3, pointRadius: 3 },
+        { label: "Executed", data: Array(10).fill(0), borderColor: "#2ecc71", fill: false },
+        { label: "Pending", data: Array(10).fill(0), borderColor: "#f1c40f", fill: false },
+        { label: "Failed", data: Array(10).fill(0), borderColor: "#e74c3c", fill: false }
       ],
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } }, // ❌ tắt chú thích trên
-      animation: { duration: 600, easing: "easeOutQuart" },
-    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  gasChart = new Chart(gasCtx, {
+  const gasChart = new Chart(ctxGas, {
     type: "bar",
     data: {
-      labels,
+      labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: "AOT Gas", backgroundColor: "#10b981", data: [] },
-        { label: "JIT Gas", backgroundColor: "#3b82f6", data: [] },
+        { label: "AOT Gas", data: Array(10).fill(0), backgroundColor: "#27ae60" },
+        { label: "JIT Gas", data: Array(10).fill(0), backgroundColor: "#3498db" }
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      animation: { duration: 600 },
+      plugins: { legend: { position: "bottom" } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: "Gas (SOL)" } } },
     },
   });
-}
 
-function simulateOnce() {
-  const txCount = parseInt(txCountInput.value) || 100;
-  const scenario = scenarioSel.value;
-  const isAOT = aotMode.checked;
-  let pFail = 0.02,
-    pPend = 0.03,
-    gA = 0.0015,
-    gJ = 0.001;
-
-  if (scenario === "high") {
-    pFail = 0.05;
-    pPend = 0.04;
-  } else if (scenario === "congested") {
-    pFail = 0.1;
-    pPend = 0.08;
+  function resetSimulation() {
+    txChart.data.datasets.forEach(ds => (ds.data = Array(10).fill(0)));
+    gasChart.data.datasets.forEach(ds => (ds.data = Array(10).fill(0)));
+    totalTx = totalGasAOT = totalGasJIT = 0;
+    updateTotals();
+    txChart.update(); gasChart.update();
   }
 
-  if (isAOT) {
-    pPend *= 0.25;
-    pFail *= 0.4;
-    gA *= 3;
-  }
-
-  let delay = 0;
-  for (let i = 0; i < txCount; i++) {
-    setTimeout(() => {
-      const idx = Math.floor(Math.random() * SLOT_COUNT);
-      const r = Math.random();
-      if (r < pFail) {
-        perSlot[idx].fail++;
-        totals.fail++;
-      } else if (r < pFail + pPend) {
-        perSlot[idx].pend++;
-        totals.pend++;
+  function generateData(mode, txCount) {
+    return Array(10).fill(0).map(() => {
+      let executed, pending, failed, gas;
+      if (mode === "AOT") {
+        executed = Math.floor(txCount / 10 * (0.88 + Math.random() * 0.07));
+        pending = Math.floor(txCount / 10 * (0.015 + Math.random() * 0.015));
+        failed = Math.floor(txCount / 10 * (0.02 + Math.random() * 0.03));
+        gas = +(0.0018 + Math.random() * 0.0007).toFixed(4);
       } else {
-        perSlot[idx].exec++;
-        totals.exec++;
+        executed = Math.floor(txCount / 10 * (0.8 + Math.random() * 0.1));
+        pending = Math.floor(txCount / 10 * (0.04 + Math.random() * 0.05));
+        failed = Math.floor(txCount / 10 * (0.03 + Math.random() * 0.05));
+        gas = +(0.0013 + Math.random() * 0.0007).toFixed(4);
       }
-
-      const gas = (isAOT ? gA : gJ) * (1 + Math.random() * 0.4);
-      if (isAOT) {
-        perSlot[idx].gasAOT += gas;
-        totals.gasAOT += gas;
-      } else {
-        perSlot[idx].gasJIT += gas;
-        totals.gasJIT += gas;
-      }
-
-      updateCharts();
-      updateUI();
-    }, delay);
-    delay += 2;
+      return { executed, pending, failed, gas };
+    });
   }
-}
 
-function updateCharts() {
-  const execArr = [],
-    pendArr = [],
-    failArr = [],
-    gasA = [],
-    gasJ = [];
-  perSlot.forEach((s) => {
-    execArr.push(s.exec);
-    pendArr.push(s.pend);
-    failArr.push(s.fail);
-    gasA.push(s.gasAOT);
-    gasJ.push(s.gasJIT);
-  });
-  txChart.data.datasets[0].data = execArr;
-  txChart.data.datasets[1].data = pendArr;
-  txChart.data.datasets[2].data = failArr;
-  gasChart.data.datasets[0].data = gasA;
-  gasChart.data.datasets[1].data = gasJ;
-  txChart.update();
-  gasChart.update();
-}
+  function simulateOnce() {
+    const txCount = parseInt(txCountInput.value) || 100;
+    const data = generateData(currentMode, txCount);
 
-function updateUI() {
-  perSlot.forEach((s, i) => {
-    const el = document.getElementById(`slotstat-${i}`);
-    el.innerHTML = `
-      <span class="green-txt">${s.exec}</span> /
-      <span class="yellow-txt">${s.pend}</span> /
-      <span class="red-txt">${s.fail}</span>`;
-  });
-  execEl.textContent = totals.exec;
-  failEl.textContent = totals.fail;
-  pendEl.textContent = totals.pend;
-  aotGasEl.textContent = totals.gasAOT.toFixed(4);
-  jitGasEl.textContent = totals.gasJIT.toFixed(4);
-  totalGasEl.textContent = (totals.gasAOT + totals.gasJIT).toFixed(4);
-}
+    txChart.data.datasets.forEach((ds, i) => ds.data = data.map(d => [d.executed, d.pending, d.failed][i]));
+    txChart.update();
 
-function startAutoRun() {
-  if (autoTimer) clearInterval(autoTimer);
-  autoRuns = 0;
-  autoTimer = setInterval(() => {
-    simulateOnce();
-    autoRuns++;
-    if (autoRuns >= 5) {
-      clearInterval(autoTimer);
-      setTimeout(() => {
-        const cont = confirm("Auto-run đã chạy 5 lần. Bạn có muốn tiếp tục không?");
-        if (cont) startAutoRun();
-      }, 800);
+    if (currentMode === "AOT") {
+      gasChart.data.datasets[0].data = data.map(d => d.gas);
+      gasChart.data.datasets[1].data = Array(10).fill(0);
+      totalGasAOT += data.reduce((s, d) => s + d.gas, 0);
+    } else {
+      gasChart.data.datasets[1].data = data.map(d => d.gas);
+      gasChart.data.datasets[0].data = Array(10).fill(0);
+      totalGasJIT += data.reduce((s, d) => s + d.gas, 0);
     }
-  }, 1500);
-}
+    gasChart.update();
 
-startBtn.addEventListener("click", () => {
-  if (autorunChk.checked) {
-    startAutoRun();
-  } else {
-    simulateOnce();
+    totalTx += data.reduce((s, d) => s + d.executed + d.pending + d.failed, 0);
+    updateTotals();
   }
-});
 
-resetBtn.addEventListener("click", () => {
-  totals = { exec: 0, fail: 0, pend: 0, gasAOT: 0, gasJIT: 0 };
-  initSlots();
-  updateCharts();
-  updateUI();
-  if (autoTimer) clearInterval(autoTimer);
-});
+  function updateTotals() {
+    totalTxDisplay.textContent = totalTx.toLocaleString();
+    totalGasAOTDisplay.textContent = totalGasAOT.toFixed(4);
+    totalGasJITDisplay.textContent = totalGasJIT.toFixed(4);
+  }
 
-exportBtn.addEventListener("click", () => {
-  let csv = "Slot,Executed,Pending,Failed,AOT Gas,JIT Gas\n";
-  perSlot.forEach(
-    (s, i) =>
-      (csv += `${i + 1},${s.exec},${s.pend},${s.fail},${s.gasAOT.toFixed(
-        6
-      )},${s.gasJIT.toFixed(6)}\n`)
-  );
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "slotscope.csv";
-  a.click();
-});
+  async function autoRun() {
+    for (let i = 0; i < 5; i++) {
+      simulateOnce();
+      await new Promise(r => setTimeout(r, 1200));
+    }
+    const cont = confirm("Auto-run finished 5 rounds. Continue?");
+    if (cont) autoRun(); else autoRunCheckbox.checked = false;
+  }
 
-initSlots();
-createCharts();
-updateCharts();
-updateUI();
+  startBtn.addEventListener("click", () => {
+    simulateOnce();
+    if (autoRunCheckbox.checked) autoRun();
+  });
+
+  resetBtn.addEventListener("click", resetSimulation);
+});
