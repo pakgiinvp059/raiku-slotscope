@@ -27,11 +27,12 @@
     <label>TX Count: <input id="txCount" type="number" value="100" min="10"></label>
     <label><input type="checkbox" id="autoRun"> Auto-run</label>
     <button id="exportBtn">📤 Export</button>
+    <button id="compareBtn">📊 So sánh JIT & AOT</button>
     <button id="resetBtn">🔁 Reset</button>
   </div>
 
-  <!-- 10 Slots -->
-  <div class="slots">
+  <!-- Slots -->
+  <div class="slots" id="slots">
     <div class="slot"><h3>Slot 1</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
     <div class="slot"><h3>Slot 2</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
     <div class="slot"><h3>Slot 3</h3><div class="dots"><span class="dot green"></span><span class="dot orange"></span><span class="dot red"></span></div><div class="slot-value">0</div></div>
@@ -84,6 +85,13 @@
     <div class="box">JIT Gas (SOL)<br><span id="jitGas">0.00000</span></div>
     <div class="box">AOT Gas (SOL)<br><span id="aotGas">0.00000</span></div>
     <div class="box">Total Gas (SOL)<br><span id="totalGas">0.00000</span></div>
+  </div>
+
+  <!-- Hidden comparison box -->
+  <div id="comparison" class="comparison hidden">
+    <h3>📊 So sánh JIT & AOT</h3>
+    <p>JIT Total TX: <span id="jitTxTotal">0</span> — Gas: <span id="jitGasCompare">0.00000</span></p>
+    <p>AOT Total TX: <span id="aotTxTotal">0</span> — Gas: <span id="aotGasCompare">0.00000</span></p>
   </div>
 
   <script src="script.js"></script>
