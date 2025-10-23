@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const ctxTx = document.getElementById("txChart").getContext("2d");
   const ctxGas = document.getElementById("gasChart").getContext("2d");
 
-  // Phần hiển thị tổng chung
   const executedEl = document.getElementById("executedTx");
   const failedEl = document.getElementById("failedTx");
   const pendingEl = document.getElementById("pendingTx");
@@ -14,23 +13,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const jitGasEl = document.getElementById("jitGas");
   const totalGasEl = document.getElementById("totalGas");
 
-  // Tạo 2 dòng tổng riêng cho JIT và AOT
   const summary = document.getElementById("summary");
-  const extraSummary = document.createElement("div");
-  extraSummary.innerHTML = `
-    <div class="extra-summary">
-      <div><b>JIT</b> → Total TX: <span id="jitTotal">0</span> | Executed: <span id="jitExecuted">0</span> | Pending: <span id="jitPending">0</span> | Failed: <span id="jitFailed">0</span></div>
-      <div><b>AOT</b> → Total TX: <span id="aotTotal">0</span> | Executed: <span id="aotExecuted">0</span> | Pending: <span id="aotPending">0</span> | Failed: <span id="aotFailed">0</span></div>
+  const extraLine = document.createElement("div");
+  extraLine.classList.add("summary-extra");
+  extraLine.innerHTML = `
+    <div class="summary-row">
+      <div><b>JIT Executed TX:</b> <span id="jitExecutedTx">0</span></div>
+      <div><b>JIT Failed TX:</b> <span id="jitFailedTx">0</span></div>
+      <div><b>JIT Pending TX:</b> <span id="jitPendingTx">0</span></div>
+      <div><b>JIT Gas (SOL):</b> <span id="jitGasDetail">0.00000</span></div>
     </div>
-  `;
-  summary.insertAdjacentElement("afterend", extraSummary);
+    <div class="summary-row">
+      <div><b>AOT Executed TX:</b> <span id="aotExecutedTx">0</span></div>
+      <div><b>AOT Failed TX:</b> <span id="aotFailedTx">0</span></div>
+      <div><b>AOT Pending TX:</b> <span id="aotPendingTx">0</span></div>
+      <div><b>AOT Gas (SOL):</b> <span id="aotGasDetail">0.00000</span></div>
+    </div>`;
+  summary.insertAdjacentElement("afterend", extraLine);
 
-  // Biến đếm
-  let executed = 0, failed = 0, pending = 0, aotGas = 0, jitGas = 0;
-  let jitData = { total: 0, executed: 0, pending: 0, failed: 0 };
-  let aotData = { total: 0, executed: 0, pending: 0, failed: 0 };
-
-  let currentMode = "AOT";
+  let executed = 0, failed = 0, pending = 0;
+  let aotGas = 0, jitGas = 0;
+  let aotExecuted = 0, jitExecuted = 0;
+  let aotPending = 0, jitPending = 0;
+  let aotFailed = 0, jitFailed = 0;
+  let currentMode = "JIT";
 
   modeRadios.forEach(r => r.addEventListener("change", () => currentMode = r.value));
 
@@ -66,22 +72,21 @@ document.addEventListener("DOMContentLoaded", () => {
         ex = Math.floor(90 + Math.random() * 10);
         pend = Math.floor(Math.random() * 2);
         fail = Math.floor(Math.random() * 2);
-        gas = +(0.0001 + Math.random() * 0.0001).toFixed(5);
+        gas = +(0.00008 + Math.random() * 0.00004).toFixed(5);
       } else {
         ex = Math.floor(80 + Math.random() * 10);
         pend = Math.floor(2 + Math.random() * 3);
         fail = Math.floor(2 + Math.random() * 3);
-        gas = +(0.00008 + Math.random() * 0.00005).toFixed(5);
+        gas = +(0.00006 + Math.random() * 0.00003).toFixed(5);
       }
       return { ex, pend, fail, gas };
     });
   }
 
   function updateDisplay(d) {
-    const total = d.reduce((sum, x) => sum + x.ex + x.pend + x.fail, 0);
-    const exSum = d.reduce((sum, x) => sum + x.ex, 0);
-    const pendSum = d.reduce((sum, x) => sum + x.pend, 0);
-    const failSum = d.reduce((sum, x) => sum + x.fail, 0);
+    const exSum = d.reduce((s, x) => s + x.ex, 0);
+    const pendSum = d.reduce((s, x) => s + x.pend, 0);
+    const failSum = d.reduce((s, x) => s + x.fail, 0);
     const gasSum = d.reduce((s, x) => s + x.gas, 0);
 
     executed += exSum;
@@ -89,17 +94,15 @@ document.addEventListener("DOMContentLoaded", () => {
     pending += pendSum;
 
     if (currentMode === "AOT") {
+      aotExecuted += exSum;
+      aotPending += pendSum;
+      aotFailed += failSum;
       aotGas += gasSum;
-      aotData.total += total;
-      aotData.executed += exSum;
-      aotData.pending += pendSum;
-      aotData.failed += failSum;
     } else {
+      jitExecuted += exSum;
+      jitPending += pendSum;
+      jitFailed += failSum;
       jitGas += gasSum;
-      jitData.total += total;
-      jitData.executed += exSum;
-      jitData.pending += pendSum;
-      jitData.failed += failSum;
     }
 
     executedEl.textContent = executed;
@@ -109,15 +112,15 @@ document.addEventListener("DOMContentLoaded", () => {
     jitGasEl.textContent = jitGas.toFixed(5);
     totalGasEl.textContent = (aotGas + jitGas).toFixed(5);
 
-    document.getElementById("jitTotal").textContent = jitData.total;
-    document.getElementById("jitExecuted").textContent = jitData.executed;
-    document.getElementById("jitPending").textContent = jitData.pending;
-    document.getElementById("jitFailed").textContent = jitData.failed;
+    document.getElementById("jitExecutedTx").textContent = jitExecuted;
+    document.getElementById("jitFailedTx").textContent = jitFailed;
+    document.getElementById("jitPendingTx").textContent = jitPending;
+    document.getElementById("jitGasDetail").textContent = jitGas.toFixed(5);
 
-    document.getElementById("aotTotal").textContent = aotData.total;
-    document.getElementById("aotExecuted").textContent = aotData.executed;
-    document.getElementById("aotPending").textContent = aotData.pending;
-    document.getElementById("aotFailed").textContent = aotData.failed;
+    document.getElementById("aotExecutedTx").textContent = aotExecuted;
+    document.getElementById("aotFailedTx").textContent = aotFailed;
+    document.getElementById("aotPendingTx").textContent = aotPending;
+    document.getElementById("aotGasDetail").textContent = aotGas.toFixed(5);
   }
 
   function simulate() {
@@ -149,17 +152,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   resetBtn.addEventListener("click", () => {
-    executed = failed = pending = aotGas = jitGas = 0;
-    jitData = { total: 0, executed: 0, pending: 0, failed: 0 };
-    aotData = { total: 0, executed: 0, pending: 0, failed: 0 };
+    executed = failed = pending = 0;
+    aotGas = jitGas = 0;
+    aotExecuted = jitExecuted = 0;
+    aotPending = jitPending = 0;
+    aotFailed = jitFailed = 0;
 
     txChart.data.datasets.forEach(d => d.data = Array(10).fill(0));
     gasChart.data.datasets.forEach(d => d.data = Array(10).fill(0));
     txChart.update(); gasChart.update();
 
-    executedEl.textContent = failedEl.textContent = pendingEl.textContent = 0;
-    aotGasEl.textContent = jitGasEl.textContent = totalGasEl.textContent = "0.0000";
-
-    document.querySelectorAll(".extra-summary span").forEach(e => e.textContent = "0");
+    [executedEl, failedEl, pendingEl].forEach(e => e.textContent = 0);
+    [aotGasEl, jitGasEl, totalGasEl].forEach(e => e.textContent = "0.00000");
+    document.querySelectorAll(".summary-extra span").forEach(e => e.textContent = "0");
   });
 });
