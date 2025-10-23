@@ -39,7 +39,11 @@ function initSlots() {
         <div class="dot yellow"></div>
         <div class="dot red"></div>
       </div>
-      <div id="slotnum-${i}">0</div>`;
+      <div class="slot-stats" id="slotstat-${i}">
+        <span class="green-txt">0</span> /
+        <span class="yellow-txt">0</span> /
+        <span class="red-txt">0</span>
+      </div>`;
     slotsRow.appendChild(s);
   }
 }
@@ -54,12 +58,17 @@ function createCharts() {
     data: {
       labels,
       datasets: [
-        { label: "Executed", borderColor: "#10b981", data: [], tension: 0.3 },
-        { label: "Pending", borderColor: "#f59e0b", data: [], tension: 0.3 },
-        { label: "Failed", borderColor: "#ef4444", data: [], tension: 0.3 },
+        { label: "Executed", borderColor: "#10b981", data: [], tension: 0.3, pointRadius: 3 },
+        { label: "Pending", borderColor: "#f59e0b", data: [], tension: 0.3, pointRadius: 3 },
+        { label: "Failed", borderColor: "#ef4444", data: [], tension: 0.3, pointRadius: 3 },
       ],
     },
-    options: { responsive: true, maintainAspectRatio: false },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      animation: { duration: 600, easing: "easeOutQuart" },
+    },
   });
 
   gasChart = new Chart(gasCtx, {
@@ -71,7 +80,12 @@ function createCharts() {
         { label: "JIT Gas", backgroundColor: "#3b82f6", data: [] },
       ],
     },
-    options: { responsive: true, maintainAspectRatio: false },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      animation: { duration: 600 },
+    },
   });
 }
 
@@ -98,31 +112,36 @@ function simulateOnce() {
     gA *= 3;
   }
 
+  let delay = 0;
   for (let i = 0; i < txCount; i++) {
-    const idx = Math.floor(Math.random() * SLOT_COUNT);
-    const r = Math.random();
-    if (r < pFail) {
-      perSlot[idx].fail++;
-      totals.fail++;
-    } else if (r < pFail + pPend) {
-      perSlot[idx].pend++;
-      totals.pend++;
-    } else {
-      perSlot[idx].exec++;
-      totals.exec++;
-    }
+    setTimeout(() => {
+      const idx = Math.floor(Math.random() * SLOT_COUNT);
+      const r = Math.random();
+      if (r < pFail) {
+        perSlot[idx].fail++;
+        totals.fail++;
+      } else if (r < pFail + pPend) {
+        perSlot[idx].pend++;
+        totals.pend++;
+      } else {
+        perSlot[idx].exec++;
+        totals.exec++;
+      }
 
-    const gas = (isAOT ? gA : gJ) * (1 + Math.random() * 0.4);
-    if (isAOT) {
-      perSlot[idx].gasAOT += gas;
-      totals.gasAOT += gas;
-    } else {
-      perSlot[idx].gasJIT += gas;
-      totals.gasJIT += gas;
-    }
+      const gas = (isAOT ? gA : gJ) * (1 + Math.random() * 0.4);
+      if (isAOT) {
+        perSlot[idx].gasAOT += gas;
+        totals.gasAOT += gas;
+      } else {
+        perSlot[idx].gasJIT += gas;
+        totals.gasJIT += gas;
+      }
+
+      updateCharts();
+      updateUI();
+    }, delay);
+    delay += 2; // ⏱ thêm độ trễ nhẹ để mô phỏng xử lý thực
   }
-  updateCharts();
-  updateUI();
 }
 
 function updateCharts() {
@@ -149,7 +168,11 @@ function updateCharts() {
 
 function updateUI() {
   perSlot.forEach((s, i) => {
-    document.getElementById(`slotnum-${i}`).textContent = s.exec;
+    const el = document.getElementById(`slotstat-${i}`);
+    el.innerHTML = `
+      <span class="green-txt">${s.exec}</span> /
+      <span class="yellow-txt">${s.pend}</span> /
+      <span class="red-txt">${s.fail}</span>`;
   });
   execEl.textContent = totals.exec;
   failEl.textContent = totals.fail;
@@ -185,3 +208,15 @@ initSlots();
 createCharts();
 updateCharts();
 updateUI();
+
+// thêm 4 chấm nhỏ dưới biểu đồ TX
+const txChartBox = document.querySelector(".chart-block:first-child");
+const legendDots = document.createElement("div");
+legendDots.className = "legend-dots";
+legendDots.innerHTML = `
+  <span class="dot green"></span> Executed 
+  <span class="dot yellow"></span> Pending 
+  <span class="dot red"></span> Failed 
+  <span class="dot black"></span> Total
+`;
+txChartBox.appendChild(legendDots);
