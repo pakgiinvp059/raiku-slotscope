@@ -11,10 +11,24 @@
   --radius: 12px;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--text); }
-.container { max-width: 1280px; margin: auto; padding: 20px; overflow-x: hidden; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: "Inter", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.container {
+  max-width: 1280px;
+  margin: auto;
+  padding: 20px;
+  overflow-x: hidden;
+}
 
+/* ===== HEADER ===== */
 .topbar {
   background: linear-gradient(90deg, #06b6d4, #0ea5e9);
   color: white;
@@ -33,6 +47,7 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   opacity: 0.9;
 }
 
+/* ===== CARDS ===== */
 .card {
   background: var(--card);
   border-radius: var(--radius);
@@ -41,6 +56,7 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   margin-bottom: 16px;
 }
 
+/* ===== CONTROLS ===== */
 .controls-row {
   display: flex;
   align-items: center;
@@ -59,8 +75,15 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   color: #fff;
   font-weight: 600;
 }
-.mode-toggle label { margin-right: 8px; }
+.mode-toggle label {
+  margin-right: 8px;
+}
+label {
+  font-size: 14px;
+  color: #374151;
+}
 
+/* ===== SLOTS ===== */
 .slots-row {
   display: flex;
   justify-content: space-between;
@@ -75,12 +98,37 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   min-width: 90px;
   text-align: center;
 }
-.dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot.green { background: var(--green); }
-.dot.yellow { background: var(--yellow); }
-.dot.red { background: var(--red); }
+.slot h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.dot.green {
+  background: var(--green);
+}
+.dot.yellow {
+  background: var(--yellow);
+}
+.dot.red {
+  background: var(--red);
+}
+.dot.black {
+  background: #111;
+}
 
+/* ===== BLUEPRINT ===== */
 .blueprint .flow {
   display: flex;
   justify-content: center;
@@ -98,8 +146,12 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   min-width: 110px;
   text-align: center;
 }
-.arrow { color: var(--muted); font-size: 20px; }
+.arrow {
+  color: var(--muted);
+  font-size: 20px;
+}
 
+/* ===== METRICS ===== */
 .metrics {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -121,6 +173,11 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   min-height: 340px;
   max-height: 340px;
 }
+.chart-block h4 {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
 .chart-block canvas {
   width: 100% !important;
   height: 260px !important;
@@ -128,6 +185,7 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   display: block;
 }
 
+/* ===== SUMMARY ===== */
 .summary {
   display: flex;
   justify-content: space-between;
@@ -142,8 +200,56 @@ body { font-family: "Inter", sans-serif; background: var(--bg); color: var(--tex
   min-width: 140px;
   text-align: center;
 }
-.sum-block strong { font-size: 18px; color: var(--accent); }
+.sum-block strong {
+  font-size: 18px;
+  color: var(--accent);
+}
 
+/* ===== LEGEND DOTS (custom for TX chart) ===== */
+.legend-dots {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #334155;
+}
+.legend-dots .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 0 4px;
+}
+.legend-dots .dot.green {
+  background: #10b981;
+}
+.legend-dots .dot.yellow {
+  background: #f59e0b;
+}
+.legend-dots .dot.red {
+  background: #ef4444;
+}
+.legend-dots .dot.black {
+  background: #111;
+}
+
+/* ===== COLORS & STATS TEXT ===== */
+.green-txt {
+  color: #10b981;
+}
+.yellow-txt {
+  color: #f59e0b;
+}
+.red-txt {
+  color: #ef4444;
+}
+
+.slot-stats {
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ===== FOOTER ===== */
 .footer {
   text-align: center;
   color: var(--muted);
