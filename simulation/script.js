@@ -2,6 +2,8 @@ const SLOT_COUNT = 10;
 let perSlot = [];
 let totals = { exec: 0, fail: 0, pend: 0, gasAOT: 0, gasJIT: 0 };
 let txChart, gasChart;
+let autoTimer = null;
+let autoRuns = 0;
 
 const slotsRow = document.getElementById("slotsRow");
 const startBtn = document.getElementById("startBtn");
@@ -66,7 +68,7 @@ function createCharts() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: false } }, // ❌ tắt chú thích trên
       animation: { duration: 600, easing: "easeOutQuart" },
     },
   });
@@ -182,13 +184,38 @@ function updateUI() {
   totalGasEl.textContent = (totals.gasAOT + totals.gasJIT).toFixed(4);
 }
 
-startBtn.addEventListener("click", simulateOnce);
+function startAutoRun() {
+  if (autoTimer) clearInterval(autoTimer);
+  autoRuns = 0;
+  autoTimer = setInterval(() => {
+    simulateOnce();
+    autoRuns++;
+    if (autoRuns >= 5) {
+      clearInterval(autoTimer);
+      setTimeout(() => {
+        const cont = confirm("Auto-run đã chạy 5 lần. Bạn có muốn tiếp tục không?");
+        if (cont) startAutoRun();
+      }, 800);
+    }
+  }, 1500);
+}
+
+startBtn.addEventListener("click", () => {
+  if (autorunChk.checked) {
+    startAutoRun();
+  } else {
+    simulateOnce();
+  }
+});
+
 resetBtn.addEventListener("click", () => {
   totals = { exec: 0, fail: 0, pend: 0, gasAOT: 0, gasJIT: 0 };
   initSlots();
   updateCharts();
   updateUI();
+  if (autoTimer) clearInterval(autoTimer);
 });
+
 exportBtn.addEventListener("click", () => {
   let csv = "Slot,Executed,Pending,Failed,AOT Gas,JIT Gas\n";
   perSlot.forEach(
