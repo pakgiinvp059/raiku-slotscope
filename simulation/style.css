@@ -1,18 +1,21 @@
+/* Tổng thể bố cục */
 body {
   font-family: "Segoe UI", sans-serif;
-  background: #f7faff;
+  background: #f8fbff;
   color: #222;
-  text-align: center;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 header {
   background: linear-gradient(90deg, #009dff, #00c3ff);
   color: white;
+  text-align: center;
   padding: 15px 0;
 }
 
+/* Khu vực điều khiển */
 .controls {
   display: flex;
   justify-content: center;
@@ -20,6 +23,8 @@ header {
   gap: 10px;
   padding: 10px;
   flex-wrap: wrap;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 button {
@@ -29,17 +34,21 @@ button {
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
+  transition: 0.2s;
 }
 button:hover {
   background: #007acc;
 }
 
+/* Khu vực Slot */
 .slots-container {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
+  gap: 10px;
+  margin: 0 auto;
+  max-width: 100%;
+  padding: 10px 0;
 }
 
 .slot {
@@ -62,17 +71,17 @@ button:hover {
   height: 10px;
   border-radius: 50%;
 }
-
 .green { background: #00c853; }
 .yellow { background: #ffb300; }
 .red { background: #ff5252; }
 
+/* Blueprint */
 .blueprint {
-  margin: 15px auto;
-  width: 90%;
+  margin: 10px auto;
   background: white;
-  padding: 12px;
+  padding: 10px;
   border-radius: 8px;
+  width: 90%;
   box-shadow: 0 0 4px #ccc;
 }
 
@@ -80,18 +89,20 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
-
 .arrow { font-size: 20px; }
 
+/* Biểu đồ */
 .charts {
   display: flex;
-  justify-content: center;
-  gap: 20px;
+  justify-content: space-between;
   width: 90%;
-  margin: auto;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 15px;
+  align-items: center;
 }
 
 canvas {
@@ -99,10 +110,12 @@ canvas {
   border-radius: 8px;
   box-shadow: 0 0 4px #ccc;
   padding: 10px;
-  width: 65%;
-  height: 300px;
 }
 
+#txChart { width: 72%; height: 350px; }
+#gasChart { width: 28%; height: 350px; }
+
+/* Thống kê */
 .stats {
   display: flex;
   justify-content: center;
