@@ -1,4 +1,3 @@
-/* === GLOBAL SETTINGS === */
 body {
   font-family: "Segoe UI", sans-serif;
   margin: 0;
@@ -6,30 +5,28 @@ body {
   color: #222;
 }
 
-/* === HEADER === */
+/* HEADER */
 header {
   background: linear-gradient(90deg, #009dff, #00c3ff);
   color: white;
   text-align: center;
   padding: 18px 0 14px 0;
-  width: 100%;
 }
 header h1 {
-  font-size: 28px;
-  margin: 0;
+  font-size: 30px;
   font-weight: 600;
+  margin: 0;
 }
 header p {
   font-size: 16px;
+  opacity: 0.9;
   margin: 4px 0 0 0;
-  opacity: 0.95;
 }
 
-/* === CONTROL BAR === */
+/* CONTROL BAR */
 .controls {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 10px;
   padding: 10px 7.5%;
@@ -43,15 +40,8 @@ header p {
   padding: 6px 12px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s;
 }
-.controls button:hover {
-  background: #005fd1;
-}
-.controls label {
-  font-size: 13px;
-  color: #333;
-}
+.controls button:hover { background: #005fd1; }
 .controls input[type="number"] {
   width: 60px;
   padding: 2px 4px;
@@ -59,7 +49,7 @@ header p {
   border: 1px solid #cfd9e3;
 }
 
-/* === SLOTS GRID === */
+/* SLOTS */
 .slots-container {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -68,7 +58,6 @@ header p {
   padding: 0 7.5%;
   margin-top: 10px;
 }
-
 .slot {
   text-align: center;
   background: #fff;
@@ -77,18 +66,14 @@ header p {
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   padding: 8px;
   font-size: 13px;
-  transition: transform 0.2s;
 }
-.slot:hover { transform: translateY(-2px); }
-
-.slot b { display:block; margin-bottom:6px; }
 .dots { display:flex; justify-content:center; gap:5px; margin-bottom:5px; }
 .dot { width:10px; height:10px; border-radius:50%; }
 .green { background:#22c55e; }
 .yellow { background:#facc15; }
 .red { background:#ef4444; }
 
-/* === BLUEPRINT PANEL === */
+/* BLUEPRINT */
 .panel.blueprint {
   width: 85%;
   margin: 20px auto;
@@ -97,13 +82,6 @@ header p {
   box-shadow: 0 1px 6px rgba(0,0,0,0.05);
   padding: 16px 2%;
 }
-.panel.blueprint h2 {
-  text-align: center;
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-/* === STEPS FLOW === */
 .steps {
   display: flex;
   align-items: center;
@@ -112,7 +90,6 @@ header p {
   width: 100%;
   margin-bottom: 12px;
 }
-
 .step {
   flex: 1;
   text-align: center;
@@ -123,10 +100,9 @@ header p {
   font-size: 13px;
   box-shadow: inset 0 0 4px #e8eef5;
 }
-
 .arrow { font-size: 20px; color: #7b9ab9; }
 
-/* === CHART LAYOUT === */
+/* CHARTS */
 .chart-row {
   display: grid;
   grid-template-columns: 3fr 1fr;
@@ -134,16 +110,14 @@ header p {
   width: 100%;
   height: 300px;
 }
-
 .chart {
   background: #fff;
   border: 1px solid #eaf1f6;
   border-radius: 8px;
   padding: 10px;
-  box-shadow: inset 0 0 3px #eef3f8;
 }
 
-/* === STATS PANEL === */
+/* STATS */
 .stats {
   display: flex;
   justify-content: space-evenly;
@@ -151,7 +125,6 @@ header p {
   padding: 10px 7.5%;
   width: 85%;
 }
-
 .stat {
   text-align: center;
   background: #fff;
@@ -162,45 +135,7 @@ header p {
 }
 .stat span { font-weight: bold; color: #007aff; }
 
-/* === COMPARE INFO === */
-.compare-info {
-  width: 85%;
-  margin: 12px auto;
-  background: #fff;
-  padding: 10px 14px;
-  border-radius: 8px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
-}
-
-/* === MODAL (if used in other version) === */
-.modal {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-in;
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.modal-content {
-  background: #fff;
-  border-radius: 10px;
-  padding: 16px 20px;
-  width: 80%;
-  max-width: 600px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  animation: slideUp 0.3s ease-out;
-}
-@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.close-btn {
-  float: right;
-  font-size: 22px;
-  cursor: pointer;
-  color: #555;
-}
-.close-btn:hover { color: #000; }
-
-/* === SMALL POPUP COMPARE === */
+/* POPUP COMPARE */
 .popup-compare {
   position: fixed;
   top: 50%;
@@ -212,18 +147,18 @@ header p {
   z-index: 2000;
   animation: fadeInUp 0.3s ease-out;
   width: 320px;
-  padding: 10px 10px 14px 10px;
+  max-height: 340px;
+  overflow: hidden;
+  padding: 10px 12px 14px 12px;
 }
 @keyframes fadeInUp {
   from { transform: translate(-50%, -40%); opacity: 0; }
   to { transform: translate(-50%, -50%); opacity: 1; }
 }
-.popup-inner {
-  text-align: center;
-}
+.popup-inner { text-align: center; }
 .popup-inner canvas {
   width: 100%;
-  height: 150px;
+  height: 140px !important;
 }
 .popup-inner strong {
   display: block;
@@ -238,22 +173,12 @@ header p {
   line-height: 1.3;
 }
 .closePopup {
-  margin-top: 5px;
+  margin-top: 6px;
   background: #007aff;
   color: white;
   border: none;
   border-radius: 5px;
   padding: 4px 10px;
   cursor: pointer;
-  transition: background 0.2s;
 }
-.closePopup:hover {
-  background: #005fcb;
-}
-
-/* === RESPONSIVE === */
-@media (max-width: 768px) {
-  .slots-container { grid-template-columns: repeat(5, 1fr); }
-  .chart-row { grid-template-columns: 1fr; height: auto; }
-  .controls, .stats, .panel.blueprint { width: 95%; padding: 10px 2.5%; }
-}
+.closePopup:hover { background: #005fcb; }
