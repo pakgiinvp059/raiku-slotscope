@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>🪐 Raiku SlotScope — Deterministic Simulation</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🪐 Raiku SlotScope</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -13,82 +13,55 @@
     <p>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</p>
   </header>
 
-  <div class="controls-wrap">
-    <div class="controls">
-      <button id="startBtn">🚀 Start Simulation</button>
-      <label class="radio"><input type="radio" name="mode" value="JIT" checked /> JIT</label>
-      <label class="radio"><input type="radio" name="mode" value="AOT" /> AOT</label>
-      <label>Scenario:
-        <select id="scenario">
-          <option value="Normal">Normal</option>
-          <option value="HighFee">High Fee</option>
-          <option value="Congested">Congested</option>
-        </select>
-      </label>
-      <label>TX Count: <input id="txCount" type="number" value="100" min="1" /></label>
-      <label class="checkbox"><input id="autoRun" type="checkbox" /> Auto-run</label>
-      <button id="compareBtn">📊 So sánh JIT & AOT</button>
-      <button id="resetBtn">🔄 Reset</button>
-    </div>
+  <div class="controls">
+    <button id="startBtn">🚀 Start Simulation</button>
+    <label><input type="radio" name="mode" value="JIT" checked /> JIT</label>
+    <label><input type="radio" name="mode" value="AOT" /> AOT</label>
+    <label>Scenario:
+      <select id="scenario">
+        <option value="Normal">Normal</option>
+        <option value="HighFee">High Fee</option>
+        <option value="Congested">Congested</option>
+      </select>
+    </label>
+    <label>TX Count: <input id="txCount" type="number" value="100" min="1" /></label>
+    <button id="compareBtn">📊 So sánh JIT & AOT</button>
+    <button id="resetBtn">🔄 Reset</button>
   </div>
 
-  <div id="slots" class="slots-container" aria-live="polite"></div>
+  <div class="slots-container" id="slots"></div>
 
   <section class="panel blueprint">
     <h2>🍀 Deterministic Execution Blueprint</h2>
     <div class="steps">
-      <div class="step">👤<br/>User<br/>Submit TX</div>
+      <div class="step">👤 User<br/>Submit TX</div>
       <div class="arrow">→</div>
-      <div class="step">🧠<br/>Raiku Node<br/>AOT / JIT Scheduling</div>
+      <div class="step">🧠 Raiku Node<br/>AOT / JIT Scheduling</div>
       <div class="arrow">→</div>
-      <div class="step">⏱<br/>Slot Reservation<br/>Guaranteed Order</div>
+      <div class="step">⏱ Slot Reservation<br/>Guaranteed Order</div>
       <div class="arrow">→</div>
-      <div class="step">☀️<br/>Solana Chain<br/>Deterministic Execution</div>
+      <div class="step">☀️ Solana Chain<br/>Deterministic Execution</div>
       <div class="arrow">→</div>
-      <div class="step">✅<br/>TX Confirmed<br/>Finality</div>
-    </div>
-
-    <div class="legend-dots">
-      <span class="dot green"></span> Executed
-      <span class="dot yellow"></span> Pending
-      <span class="dot red"></span> Failed
+      <div class="step">✅ TX Confirmed<br/>Finality</div>
     </div>
 
     <div class="chart-row">
       <div class="chart tx-chart">
         <canvas id="txChart"></canvas>
-        <div class="chart-legend-dots">
-          <span class="small-dot green"></span><span>Executed</span>
-          <span class="small-dot yellow"></span><span>Pending</span>
-          <span class="small-dot red"></span><span>Failed</span>
-        </div>
       </div>
-
       <div class="chart gas-chart">
         <canvas id="gasChart"></canvas>
       </div>
     </div>
   </section>
 
-  <div class="stats" aria-live="polite">
-    <div class="stat"><div class="stat-title">Executed TX</div><div id="executedVal" class="stat-val">0</div></div>
-    <div class="stat"><div class="stat-title">Failed TX</div><div id="failedVal" class="stat-val">0</div></div>
-    <div class="stat"><div class="stat-title">Pending TX</div><div id="pendingVal" class="stat-val">0</div></div>
-    <div class="stat"><div class="stat-title">JIT Gas (SOL)</div><div id="jitGasVal" class="stat-val">0.00000</div></div>
-    <div class="stat"><div class="stat-title">AOT Gas (SOL)</div><div id="aotGasVal" class="stat-val">0.00000</div></div>
-    <div class="stat"><div class="stat-title">Total Gas (SOL)</div><div id="totalGasVal" class="stat-val">0.00000</div></div>
-  </div>
-
-  <!-- compare popup (hidden) -->
-  <div id="comparePopup" class="compare-popup hidden" role="dialog" aria-modal="true">
-    <div class="popup-content">
-      <h3>So sánh JIT vs AOT</h3>
-      <canvas id="compareChart" width="420" height="260"></canvas>
-      <div id="compareSummary" class="compare-summary"></div>
-      <div style="margin-top:10px;">
-        <button id="closeCompare">Đóng</button>
-      </div>
-    </div>
+  <div class="stats">
+    <div class="stat">Executed TX<br/><span id="executedVal">0</span></div>
+    <div class="stat">Failed TX<br/><span id="failedVal">0</span></div>
+    <div class="stat">Pending TX<br/><span id="pendingVal">0</span></div>
+    <div class="stat">JIT Gas (SOL)<br/><span id="jitGasVal">0.00000</span></div>
+    <div class="stat">AOT Gas (SOL)<br/><span id="aotGasVal">0.00000</span></div>
+    <div class="stat">Total Gas (SOL)<br/><span id="totalGasVal">0.00000</span></div>
   </div>
 
   <script src="script.js"></script>
