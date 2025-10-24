@@ -47,10 +47,13 @@
       <div class="step"><span>✅</span> TX Confirmed<br />Finality</div>
     </div>
 
-    <!-- Biểu đồ gọn trong khung, cố định chiều cao -->
-    <div class="charts">
-      <div class="chart tx-chart"><canvas id="txChart"></canvas></div>
-      <div class="chart gas-chart"><canvas id="gasChart"></canvas></div>
+    <div class="chart-area">
+      <div class="chart" id="txChartWrapper">
+        <canvas id="txChart"></canvas>
+      </div>
+      <div class="chart" id="gasChartWrapper">
+        <canvas id="gasChart"></canvas>
+      </div>
     </div>
   </section>
 
