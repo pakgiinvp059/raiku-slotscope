@@ -4,7 +4,6 @@ body {
   color: #222;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
 }
 
 header {
@@ -34,7 +33,7 @@ button {
 }
 button:hover { background: #007acc; }
 
-/* ---- SLOT BOXES ---- */
+/* --- SLOT --- */
 .slots-container {
   display: flex;
   justify-content: center;
@@ -44,12 +43,14 @@ button:hover { background: #007acc; }
 }
 
 .slot {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 0 4px #ccc;
-  width: 120px;
+  width: 110px;
   padding: 10px;
   text-align: center;
+  border: 2px solid #dce3eb;
+  border-radius: 10px;
+  background-color: #fff;
+  transition: background-color 0.4s;
+  box-shadow: 0 0 5px #e0e0e0;
 }
 
 .dots {
@@ -58,30 +59,19 @@ button:hover { background: #007acc; }
   gap: 4px;
   margin: 4px 0;
 }
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
 .green { background: #00c853; }
 .yellow { background: #ffb300; }
 .red { background: #ff5252; }
 
-.slot-values {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  margin-top: 4px;
-}
-
-/* ---- BLUEPRINT ---- */
+/* --- BLUEPRINT --- */
 .blueprint {
-  width: 90%;
+  width: 80%; /* ✅ rút gọn chiều rộng tổng thể */
   margin: 15px auto;
   background: white;
-  padding: 15px;
+  padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 0 4px #ccc;
+  box-shadow: 0 0 6px #ccc;
 }
 
 .blueprint h2 {
@@ -98,13 +88,12 @@ button:hover { background: #007acc; }
   margin-bottom: 20px;
 }
 
-/* ---- CHART AREA INSIDE BLUEPRINT ---- */
-.chart-area {
+/* --- CHART ROW --- */
+.chart-row {
   display: flex;
-  gap: 15px;
   justify-content: space-between;
-  align-items: flex-start;
-  height: 350px;
+  gap: 15px;
+  height: 320px;
 }
 
 .chart {
@@ -112,18 +101,12 @@ button:hover { background: #007acc; }
   border-radius: 8px;
   box-shadow: inset 0 0 3px #ccc;
   padding: 10px;
-  height: 100%;
 }
 
-#txChartWrapper {
-  flex: 3;
-}
+.tx-chart { flex: 3; }
+.gas-chart { flex: 1; }
 
-#gasChartWrapper {
-  flex: 1;
-}
-
-/* ---- STATS ---- */
+/* --- STATS --- */
 .stats {
   display: flex;
   justify-content: center;
@@ -143,4 +126,31 @@ button:hover { background: #007acc; }
   color: #007bff;
   font-weight: bold;
   font-size: 18px;
+}
+
+/* --- POPUP --- */
+.compare-popup {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.hidden { display: none; }
+
+.popup-content {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  width: 500px;
+  box-shadow: 0 0 10px #0003;
+  text-align: center;
+}
+.popup-content h3 { margin-bottom: 15px; }
+.popup-content button {
+  background: #007bff;
+  margin-top: 10px;
 }
