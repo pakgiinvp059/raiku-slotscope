@@ -10,8 +10,18 @@ header {
   background: linear-gradient(90deg, #009dff, #00c3ff);
   color: white;
   text-align: center;
-  padding: 14px 0;
+  padding: 18px 0 14px 0;
   width: 100%;
+}
+header h1 {
+  font-size: 28px;
+  margin: 0;
+  font-weight: 600;
+}
+header p {
+  font-size: 16px;
+  margin: 4px 0 0 0;
+  opacity: 0.9;
 }
 
 /* Controls */
@@ -21,8 +31,8 @@ header {
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 10px 5%;
-  width: 90%;
+  padding: 10px 7.5%;
+  width: 85%;
 }
 
 /* Slots */
@@ -30,8 +40,8 @@ header {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 10px;
-  width: 90%;
-  padding: 0 5%;
+  width: 85%;
+  padding: 0 7.5%;
 }
 
 .slot {
@@ -42,7 +52,7 @@ header {
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   padding: 8px;
   font-size: 13px;
-  transition: 0.2s;
+  transition: transform 0.2s;
 }
 .slot:hover { transform: translateY(-2px); }
 
@@ -55,7 +65,7 @@ header {
 
 /* Blueprint */
 .panel.blueprint {
-  width: 90%;
+  width: 85%;
   margin: 20px auto;
   background: #fff;
   border-radius: 10px;
@@ -107,8 +117,8 @@ header {
   display: flex;
   justify-content: space-evenly;
   flex-wrap: wrap;
-  padding: 10px 5%;
-  width: 90%;
+  padding: 10px 7.5%;
+  width: 85%;
 }
 
 .stat {
