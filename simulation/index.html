@@ -3,97 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🪐 Raiku SlotScope</title>
+  <title>🪐 Raiku SlotScope — Deterministic Simulation</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header class="header">
+  <header>
     <h1>🪐 Raiku SlotScope</h1>
     <p>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</p>
   </header>
 
-  <section class="controls">
+  <div class="controls">
     <button id="startBtn">🚀 Start Simulation</button>
-    <label><input type="radio" name="mode" value="JIT" checked> JIT</label>
-    <label><input type="radio" name="mode" value="AOT"> AOT</label>
+    <label><input type="radio" name="mode" value="JIT" checked /> JIT</label>
+    <label><input type="radio" name="mode" value="AOT" /> AOT</label>
     <label>Scenario:
       <select id="scenario">
-        <option>Normal</option>
-        <option>High Fee</option>
-        <option>Congestion</option>
+        <option value="Normal">Normal</option>
+        <option value="HighFee">High Fee</option>
+        <option value="Congested">Congested</option>
       </select>
     </label>
-    <label>TX Count: <input id="txCount" type="number" value="100" min="10"></label>
-    <label><input type="checkbox" id="autoRun"> Auto-run</label>
+    <label>TX Count: <input type="number" id="txCount" value="100" /></label>
+    <label><input type="checkbox" id="autoRun" /> Auto-run</label>
     <button id="exportBtn">📤 Export</button>
     <button id="compareBtn">📊 So sánh JIT & AOT</button>
-    <button id="resetBtn">🔁 Reset</button>
-  </section>
+    <button id="resetBtn">🔄 Reset</button>
+  </div>
 
-  <section class="slots" id="slots"></section>
+  <div id="slots" class="slots-container"></div>
 
   <section class="blueprint">
-    <h2>🧩 Deterministic Execution Blueprint</h2>
+    <h2>🍀 Deterministic Execution Blueprint</h2>
     <div class="steps">
-      <div class="step">👤 User<br><small>Submit TX</small></div>
-      <div class="arrow">➡</div>
-      <div class="step">🧠 Raiku Node<br><small>AOT / JIT Scheduling</small></div>
-      <div class="arrow">➡</div>
-      <div class="step">⏱ Slot Reservation<br><small>Guaranteed Order</small></div>
-      <div class="arrow">➡</div>
-      <div class="step">🪐 Solana Chain<br><small>Deterministic Execution</small></div>
-      <div class="arrow">➡</div>
-      <div class="step">✅ TX Confirmed<br><small>Finality</small></div>
+      <div class="step"><span>👤</span> User<br />Submit TX</div>
+      <div class="arrow">→</div>
+      <div class="step"><span>🧠</span> Raiku Node<br />AOT / JIT Scheduling</div>
+      <div class="arrow">→</div>
+      <div class="step"><span>⏱</span> Slot Reservation<br />Guaranteed Order</div>
+      <div class="arrow">→</div>
+      <div class="step"><span>☀️</span> Solana Chain<br />Deterministic Execution</div>
+      <div class="arrow">→</div>
+      <div class="step"><span>✅</span> TX Confirmed<br />Finality</div>
     </div>
   </section>
 
-  <section class="charts">
-    <div class="chart-box large">
-      <canvas id="txChart"></canvas>
-      <div class="legend">
-        <span class="dot green"></span> Executed
-        <span class="dot orange"></span> Pending
-        <span class="dot red"></span> Failed
-      </div>
-    </div>
-    <div class="chart-box small">
-      <canvas id="gasChart"></canvas>
-      <div class="legend">
-        <span class="dot blue"></span> JIT Gas
-        <span class="dot teal"></span> AOT Gas
-      </div>
-    </div>
-  </section>
+  <div class="charts">
+    <canvas id="txChart"></canvas>
+    <canvas id="gasChart"></canvas>
+  </div>
 
-  <section class="summary">
-    <div class="box">Executed TX<br><span id="executedTx">0</span></div>
-    <div class="box">Failed TX<br><span id="failedTx">0</span></div>
-    <div class="box">Pending TX<br><span id="pendingTx">0</span></div>
-    <div class="box">JIT Gas (SOL)<br><span id="jitGas">0.00000</span></div>
-    <div class="box">AOT Gas (SOL)<br><span id="aotGas">0.00000</span></div>
-    <div class="box">Total Gas (SOL)<br><span id="totalGas">0.00000</span></div>
-  </section>
-
-  <section id="comparePanel" class="compare hidden">
-    <h3>📊 So sánh hiệu suất JIT vs AOT</h3>
-    <div class="compare-cols">
-      <div class="compare-col">
-        <h4>⚡ JIT Mode</h4>
-        <p>Executed TX: <strong id="jitExecuted">0</strong></p>
-        <p>Pending TX: <strong id="jitPending">0</strong></p>
-        <p>Failed TX: <strong id="jitFailed">0</strong></p>
-        <p>Total Gas (SOL): <strong id="jitGasCompare">0.00000</strong></p>
-      </div>
-      <div class="compare-col">
-        <h4>🧠 AOT Mode</h4>
-        <p>Executed TX: <strong id="aotExecuted">0</strong></p>
-        <p>Pending TX: <strong id="aotPending">0</strong></p>
-        <p>Failed TX: <strong id="aotFailed">0</strong></p>
-        <p>Total Gas (SOL): <strong id="aotGasCompare">0.00000</strong></p>
-      </div>
-    </div>
-  </section>
+  <div class="stats">
+    <div class="stat" id="executedTx">Executed TX<br><span>0</span></div>
+    <div class="stat" id="failedTx">Failed TX<br><span>0</span></div>
+    <div class="stat" id="pendingTx">Pending TX<br><span>0</span></div>
+    <div class="stat" id="jitGas">JIT Gas (SOL)<br><span>0.00000</span></div>
+    <div class="stat" id="aotGas">AOT Gas (SOL)<br><span>0.00000</span></div>
+    <div class="stat" id="totalGas">Total Gas (SOL)<br><span>0.00000</span></div>
+  </div>
 
   <script src="script.js"></script>
 </body>
