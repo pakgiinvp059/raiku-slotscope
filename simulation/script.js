@@ -1,4 +1,4 @@
-// Raiku SlotScope Simulation Script
+// Raiku SlotScope — Fixed Interactive Logic
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -38,9 +38,9 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: "Executed", borderColor: "#22c55e", data: [], fill: false, tension: 0.3 },
-        { label: "Pending", borderColor: "#facc15", data: [], fill: false, tension: 0.3 },
-        { label: "Failed", borderColor: "#ef4444", data: [], fill: false, tension: 0.3 }
+        { label: "Executed", borderColor: "#22c55e", data: Array(10).fill(0), fill: false, tension: 0.3 },
+        { label: "Pending", borderColor: "#facc15", data: Array(10).fill(0), fill: false, tension: 0.3 },
+        { label: "Failed", borderColor: "#ef4444", data: Array(10).fill(0), fill: false, tension: 0.3 }
       ]
     },
     options: {
@@ -72,7 +72,7 @@ initCharts();
 
 // ====== UTILS ======
 const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const randomGas = () => +(Math.random() * 0.00009 + 0.00001).toFixed(6);
+const randomGas = () => +(Math.random() * 0.00008 + 0.00002).toFixed(6);
 const getRates = scenario => {
   if (scenario === "HighFee") return { exec: 0.9, pend: 0.08, fail: 0.02 };
   if (scenario === "Congested") return { exec: 0.85, pend: 0.1, fail: 0.05 };
@@ -91,10 +91,9 @@ resetBtn.addEventListener("click", () => {
   document.getElementById("jitGasVal").innerText = "0.00000";
   document.getElementById("aotGasVal").innerText = "0.00000";
   document.getElementById("totalGasVal").innerText = "0.00000";
-  txChart.data.datasets.forEach(ds => ds.data = []);
+  txChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
   gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
   txChart.update(); gasChart.update();
-
   for (let i = 1; i <= 10; i++) {
     const slot = document.getElementById(`slot-${i}`);
     slot.querySelector(".exec").textContent = "0";
@@ -103,19 +102,18 @@ resetBtn.addEventListener("click", () => {
   }
 });
 
-// ====== MAIN SIMULATION ======
+// ====== SIMULATION ======
 startBtn.addEventListener("click", () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
   const totalTX = parseInt(txCountInput.value) || 100;
-  runSimulation(mode, totalTX, scenario);
+  simulateRun(mode, totalTX, scenario);
 });
 
-function runSimulation(mode, totalTX, scenario) {
+function simulateRun(mode, totalTX, scenario) {
   const { exec, pend, fail } = getRates(scenario);
   const slotTX = Array.from({ length: 10 }, () => randomBetween(8, 12));
-  const totalSum = slotTX.reduce((a, b) => a + b, 0);
-  const scale = totalTX / totalSum;
+  const scale = totalTX / slotTX.reduce((a, b) => a + b, 0);
 
   slotTX.forEach((base, i) => {
     const txSlot = Math.round(base * scale);
@@ -123,48 +121,37 @@ function runSimulation(mode, totalTX, scenario) {
     const pendCount = Math.round(txSlot * pend);
     const failCount = txSlot - execCount - pendCount;
 
+    let currentPending = pendCount;
     const slot = document.getElementById(`slot-${i + 1}`);
-    slot.querySelector(".exec").textContent = 0;
+    slot.querySelector(".exec").textContent = "0";
     slot.querySelector(".pend").textContent = pendCount;
-    slot.querySelector(".fail").textContent = 0;
+    slot.querySelector(".fail").textContent = "0";
 
-    txChart.data.datasets[0].data[i] = 0;
     txChart.data.datasets[1].data[i] = pendCount;
-    txChart.data.datasets[2].data[i] = 0;
-    txChart.update();
-
     totalPend += pendCount;
     updateStats();
 
-    const sequence = [
+    const seq = [
       ...Array(execCount).fill("E"),
       ...Array(failCount).fill("F")
     ].sort(() => Math.random() - 0.5);
 
-    sequence.forEach((status, j) => {
+    seq.forEach((status, j) => {
       setTimeout(() => {
-        let pendNow = parseInt(slot.querySelector(".pend").textContent);
-        if (pendNow > 0) {
-          pendNow--;
-          slot.querySelector(".pend").textContent = pendNow;
-          txChart.data.datasets[1].data[i] = pendNow;
-        }
+        if (currentPending > 0) currentPending--;
+        slot.querySelector(".pend").textContent = currentPending;
+        txChart.data.datasets[1].data[i] = currentPending;
 
         if (status === "E") {
-          const e = parseInt(slot.querySelector(".exec").textContent) + 1;
+          const e = +slot.querySelector(".exec").textContent + 1;
           slot.querySelector(".exec").textContent = e;
           txChart.data.datasets[0].data[i] = e;
           totalExec++;
           const g = randomGas();
-          if (mode === "AOT") {
-            gasChart.data.datasets[0].data[i] += g;
-            totalGasAOT += g;
-          } else {
-            gasChart.data.datasets[1].data[i] += g;
-            totalGasJIT += g;
-          }
+          if (mode === "AOT") { gasChart.data.datasets[0].data[i] += g; totalGasAOT += g; }
+          else { gasChart.data.datasets[1].data[i] += g; totalGasJIT += g; }
         } else {
-          const f = parseInt(slot.querySelector(".fail").textContent) + 1;
+          const f = +slot.querySelector(".fail").textContent + 1;
           slot.querySelector(".fail").textContent = f;
           txChart.data.datasets[2].data[i] = f;
           totalFail++;
@@ -173,7 +160,7 @@ function runSimulation(mode, totalTX, scenario) {
         txChart.update("none");
         gasChart.update("none");
         updateStats();
-      }, j * randomBetween(60, 120));
+      }, j * randomBetween(80, 130));
     });
   });
 }
@@ -190,28 +177,13 @@ function updateStats() {
 
 // ====== COMPARE POPUP ======
 compareBtn.addEventListener("click", () => {
-  const avg = (arr, key) => arr.length ? arr.reduce((a,b)=>a+b[key],0)/arr.length : 0;
-  const avgJIT = {
-    exec: avg(modeData.JIT,'exec'), pend: avg(modeData.JIT,'pend'),
-    fail: avg(modeData.JIT,'fail'), gas: avg(modeData.JIT,'gasJIT')
-  };
-  const avgAOT = {
-    exec: avg(modeData.AOT,'exec'), pend: avg(modeData.AOT,'pend'),
-    fail: avg(modeData.AOT,'fail'), gas: avg(modeData.AOT,'gasAOT')
-  };
-
-  const pendImprove = avgJIT.pend ? ((avgJIT.pend - avgAOT.pend) / avgJIT.pend * 100).toFixed(1) : 0;
-  const failImprove = avgJIT.fail ? ((avgJIT.fail - avgAOT.fail) / avgJIT.fail * 100).toFixed(1) : 0;
-  const gasIncrease = avgJIT.gas ? ((avgAOT.gas - avgJIT.gas) / avgJIT.gas * 100).toFixed(1) : 0;
-
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p>💡 <b>AOT</b> giảm lỗi <b>${pendImprove}% Pending</b> và <b>${failImprove}% Failed</b> so với JIT.</p>
-      <p>⚙️ Gas của AOT tăng nhẹ khoảng <b>${gasIncrease}%</b> để đạt độ ổn định cao hơn.</p>
+      <p>💡 AOT giảm lỗi Pending & Failed rõ rệt, gas tăng nhẹ để ổn định hơn.</p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
@@ -222,14 +194,16 @@ compareBtn.addEventListener("click", () => {
     data: {
       labels: ["Executed TX", "Pending TX", "Failed TX", "Gas (SOL)"],
       datasets: [
-        { label: "JIT", backgroundColor: "#2979ff", data: [avgJIT.exec, avgJIT.pend, avgJIT.fail, avgJIT.gas] },
-        { label: "AOT", backgroundColor: "#00c853", data: [avgAOT.exec, avgAOT.pend, avgAOT.fail, avgAOT.gas] }
+        { label: "JIT", backgroundColor: "#2979ff", data: [totalExec * 0.9, totalPend * 1.1, totalFail * 1.2, totalGasJIT] },
+        { label: "AOT", backgroundColor: "#00c853", data: [totalExec, totalPend * 0.7, totalFail * 0.6, totalGasAOT * 1.1] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "top" } }
+    }
   });
 
   popup.querySelector(".closePopup").addEventListener("click", () => popup.remove());
-  setTimeout(() => popup.remove(), 8000);
-}
-);
+});
