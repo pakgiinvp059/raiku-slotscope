@@ -24,7 +24,6 @@ for (let i = 1; i <= 10; i++) {
     </div>`;
 }
 
-// TX chart
 const txChart = new Chart(txChartCtx, {
   type: "line",
   data: {
@@ -35,14 +34,9 @@ const txChart = new Chart(txChartCtx, {
       { label: "Failed", borderColor: "#ff5252", data: [], fill: false },
     ]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: { y: { beginAtZero: true } }
-  }
+  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
 });
 
-// GAS chart
 const gasChart = new Chart(gasChartCtx, {
   type: "bar",
   data: {
@@ -52,28 +46,26 @@ const gasChart = new Chart(gasChartCtx, {
       { label: "JIT Gas", backgroundColor: "#2979ff", data: [] },
     ]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: { y: { beginAtZero: true } }
-  }
+  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
 });
 
-// START SIMULATION
 document.getElementById("startBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
+
   const txCount = parseInt(document.getElementById("txCount").value);
   const execData = [], pendData = [], failData = [];
   const gasAOT = [], gasJIT = [];
 
   for (let i = 1; i <= 10; i++) {
-    const slot = document.getElementById(`slot-${i}`);
     const exec = Math.floor(Math.random() * (txCount / 10)) + 5;
-    const pend = Math.floor(Math.random() * 3);
-    const fail = Math.floor(Math.random() * 2);
+    const pend = Math.floor(Math.random() * 4);
+    const fail = Math.floor(Math.random() * 3);
 
-    executed += exec; pending += pend; failed += fail;
+    executed += exec;
+    pending += pend;
+    failed += fail;
 
+    const slot = document.getElementById(`slot-${i}`);
     slot.querySelector(".exec").textContent = exec;
     slot.querySelector(".pend").textContent = pend;
     slot.querySelector(".fail").textContent = fail;
@@ -91,7 +83,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
     const gasJ = 0.00003 + Math.random() * 0.00006;
     gasAOT.push(gasA);
     gasJIT.push(gasJ);
-
     aotGas += gasA;
     jitGas += gasJ;
   }
@@ -113,9 +104,8 @@ document.getElementById("startBtn").addEventListener("click", () => {
   document.querySelector("#totalGas span").textContent = (jitGas + aotGas).toFixed(5);
 });
 
-// COMPARE POPUP
+// So sánh popup
 const popup = document.createElement("div");
-popup.id = "comparePopup";
 popup.className = "compare-popup hidden";
 popup.innerHTML = `
   <div class="popup-content">
@@ -135,7 +125,7 @@ document.getElementById("compareBtn").addEventListener("click", () => {
       labels: ["Executed", "Failed", "Pending", "Total Gas"],
       datasets: [
         { label: "JIT", data: [executed, failed, pending, jitGas], backgroundColor: "#2979ff" },
-        { label: "AOT", data: [executed * 0.98, failed * 0.6, pending * 0.8, aotGas], backgroundColor: "#00c853" },
+        { label: "AOT", data: [executed * 0.97, failed * 0.5, pending * 0.8, aotGas], backgroundColor: "#00c853" },
       ]
     },
     options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
@@ -144,7 +134,7 @@ document.getElementById("compareBtn").addEventListener("click", () => {
   document.getElementById("closeCompare").onclick = () => popup.classList.add("hidden");
 });
 
-// RESET
+// Reset
 document.getElementById("resetBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
 
