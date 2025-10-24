@@ -1,141 +1,125 @@
 body {
-  font-family: "Inter", sans-serif;
-  background: #f8fafc;
+  font-family: "Segoe UI", sans-serif;
+  background: #f7faff;
   color: #222;
-  margin: 0;
   text-align: center;
+  margin: 0;
+  padding: 0;
 }
 
-.header {
-  background: linear-gradient(90deg, #1e90ff, #00b4ff);
-  color: #fff;
-  padding: 10px 0;
+header {
+  background: linear-gradient(90deg, #009dff, #00c3ff);
+  color: white;
+  padding: 15px 0;
 }
 
 .controls {
-  margin: 15px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  flex-wrap: wrap;
 }
 
 button {
-  background: #007bff;
-  color: #fff;
+  background: #009dff;
   border: none;
-  padding: 6px 12px;
+  color: white;
+  padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
-  margin: 0 3px;
 }
-button:hover { background: #005fcc; }
+button:hover {
+  background: #007acc;
+}
 
-.slots {
+.slots-container {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  margin: 10px 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
 }
 
 .slot {
-  background: #fff;
+  background: white;
   border-radius: 8px;
-  padding: 10px;
+  box-shadow: 0 0 4px #ccc;
   width: 90px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 10px;
 }
-.dots { margin: 5px 0; }
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+
 .dot {
-  width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin: 0 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
-.green { background: #27ae60; } .orange { background: #f1c40f; }
-.red { background: #e74c3c; } .blue { background: #2980b9; } .teal { background: #16a085; }
+
+.green { background: #00c853; }
+.yellow { background: #ffb300; }
+.red { background: #ff5252; }
 
 .blueprint {
-  background: #fff;
-  border-radius: 10px;
-  margin: 20px auto;
-  padding: 15px;
-  width: 92%;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-.steps {
-  display: flex; justify-content: center; align-items: center;
-  gap: 10px; flex-wrap: nowrap; overflow-x: auto;
-}
-.step {
-  background: #f7f9fc; border-radius: 10px; padding: 8px 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  min-width: 130px;
+  margin: 15px auto;
+  width: 90%;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #ccc;
 }
 
-/* === Biểu đồ cố định tỷ lệ === */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.arrow { font-size: 20px; }
+
 .charts {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-  gap: 10px;
-  width: 92%;
-  margin: 0 auto 10px auto;
-}
-.chart-box {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  padding: 10px;
-}
-.chart-box.large { flex: 3; max-width: 75%; height: 300px; }
-.chart-box.small { flex: 1; max-width: 25%; height: 300px; }
-canvas {
-  width: 100% !important;
-  height: 260px !important;
-}
-.legend {
-  margin-top: 6px;
-  font-size: 13px;
-  color: #555;
+  gap: 20px;
+  width: 90%;
+  margin: auto;
 }
 
-/* === Tổng kết === */
-.summary {
+canvas {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #ccc;
+  padding: 10px;
+  width: 65%;
+  height: 300px;
+}
+
+.stats {
   display: flex;
   justify-content: center;
+  gap: 15px;
+  margin: 20px auto;
   flex-wrap: wrap;
-  gap: 10px;
-  margin: 15px auto;
-  width: 95%;
-}
-.box {
-  background: #f9fafc;
-  border-radius: 8px;
-  padding: 8px;
-  width: 150px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-.box span {
-  font-size: 18px;
-  font-weight: 600;
-  color: #007bff;
 }
 
-/* === So sánh JIT & AOT === */
-.compare {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  width: 60%;
-  margin: 20px auto;
-  padding: 15px;
+.stat {
+  background: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #ccc;
 }
-.compare-cols {
-  display: flex;
-  justify-content: space-around;
-  gap: 20px;
+
+.stat span {
+  color: #007bff;
+  font-weight: bold;
+  font-size: 18px;
 }
-.compare-col {
-  flex: 1;
-  background: #f8fbff;
-  border-radius: 10px;
-  padding: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-.hidden { display: none; }
