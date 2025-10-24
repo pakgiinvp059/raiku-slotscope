@@ -1,4 +1,3 @@
-/* Tổng thể bố cục */
 body {
   font-family: "Segoe UI", sans-serif;
   background: #f8fbff;
@@ -15,7 +14,6 @@ header {
   padding: 15px 0;
 }
 
-/* Khu vực điều khiển */
 .controls {
   display: flex;
   justify-content: center;
@@ -23,8 +21,6 @@ header {
   gap: 10px;
   padding: 10px;
   flex-wrap: wrap;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 button {
@@ -36,18 +32,14 @@ button {
   cursor: pointer;
   transition: 0.2s;
 }
-button:hover {
-  background: #007acc;
-}
+button:hover { background: #007acc; }
 
-/* Khu vực Slot */
 .slots-container {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
   margin: 0 auto;
-  max-width: 100%;
   padding: 10px 0;
 }
 
@@ -65,24 +57,22 @@ button:hover {
   gap: 4px;
   margin: 4px 0;
 }
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
 .green { background: #00c853; }
 .yellow { background: #ffb300; }
 .red { background: #ff5252; }
 
-/* Blueprint */
 .blueprint {
-  margin: 10px auto;
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
   width: 90%;
+  margin: 15px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
   box-shadow: 0 0 4px #ccc;
+}
+
+.blueprint h2 {
+  margin: 0 0 10px 10px;
 }
 
 .steps {
@@ -91,31 +81,36 @@ button:hover {
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 20px;
 }
-.arrow { font-size: 20px; }
 
-/* Biểu đồ */
+/* Khung biểu đồ cố định */
 .charts {
   display: flex;
   justify-content: space-between;
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
-  gap: 15px;
-  align-items: center;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 350px; /* cố định chiều cao khung */
 }
 
-canvas {
+.chart {
   background: white;
   border-radius: 8px;
   box-shadow: 0 0 4px #ccc;
   padding: 10px;
+  height: 100%;
 }
 
-#txChart { width: 72%; height: 350px; }
-#gasChart { width: 28%; height: 350px; }
+.tx-chart {
+  flex: 3;
+}
 
-/* Thống kê */
+.gas-chart {
+  flex: 1;
+}
+
+/* Stats */
 .stats {
   display: flex;
   justify-content: center;
