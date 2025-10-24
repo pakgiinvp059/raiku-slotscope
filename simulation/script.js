@@ -5,7 +5,7 @@ const gasChartCtx = document.getElementById("gasChart").getContext("2d");
 let executed = 0, failed = 0, pending = 0;
 let jitGas = 0, aotGas = 0;
 
-// tạo slot
+// tạo 10 slot với 3 giá trị (Executed, Pending, Failed)
 for (let i = 1; i <= 10; i++) {
   slots.innerHTML += `
     <div class="slot" id="slot-${i}">
@@ -15,7 +15,11 @@ for (let i = 1; i <= 10; i++) {
         <div class="dot yellow"></div>
         <div class="dot red"></div>
       </div>
-      <div class="count">0</div>
+      <div class="slot-values">
+        <span class="exec">0</span>
+        <span class="pend">0</span>
+        <span class="fail">0</span>
+      </div>
     </div>`;
 }
 
@@ -37,7 +41,7 @@ const txChart = new Chart(txChartCtx, {
   }
 });
 
-// biểu đồ Gas
+// biểu đồ GAS
 const gasChart = new Chart(gasChartCtx, {
   type: "bar",
   data: {
@@ -51,10 +55,7 @@ const gasChart = new Chart(gasChartCtx, {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { callback: v => v.toFixed(5) }
-      }
+      y: { beginAtZero: true, ticks: { callback: v => v.toFixed(5) } }
     }
   }
 });
@@ -62,7 +63,6 @@ const gasChart = new Chart(gasChartCtx, {
 document.getElementById("startBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
   const txCount = parseInt(document.getElementById("txCount").value);
-
   const execData = [], pendData = [], failData = [];
   const gasAOT = [], gasJIT = [];
 
@@ -75,7 +75,10 @@ document.getElementById("startBtn").addEventListener("click", () => {
     executed += exec;
     pending += pend;
     failed += fail;
-    slot.querySelector(".count").textContent = exec + pend + fail;
+
+    slot.querySelector(".exec").textContent = exec;
+    slot.querySelector(".pend").textContent = pend;
+    slot.querySelector(".fail").textContent = fail;
 
     execData.push(exec);
     pendData.push(pend);
