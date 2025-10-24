@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Final Stable Simulation ===
+// === Raiku SlotScope — Fixed Real Simulation Logic ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -10,9 +10,8 @@ const scenarioSelect = document.getElementById("scenario");
 let txChart, gasChart;
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
-let modeData = { JIT: [], AOT: [] };
 
-// === Create 10 Slots ===
+// === Init 10 Slots ===
 for (let i = 1; i <= 10; i++) {
   const slot = document.createElement("div");
   slot.className = "slot";
@@ -24,9 +23,8 @@ for (let i = 1; i <= 10; i++) {
       <div class="dot yellow"></div>
       <div class="dot red"></div>
     </div>
-    <div class="slot-values">
-      <span class="exec">0</span> / <span class="pend">0</span> / <span class="fail">0</span>
-    </div>`;
+    <div><span class="exec">0</span> / <span class="pend">0</span> / <span class="fail">0</span></div>
+  `;
   slotsContainer.appendChild(slot);
 }
 
@@ -43,12 +41,7 @@ function initCharts() {
         { label: "Failed", borderColor: "#ef4444", data: Array(10).fill(0), fill: false, tension: 0.3 }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: "top" } },
-      animation: false
-    }
+    options: { responsive: true, maintainAspectRatio: false, animation: false }
   });
 
   const gasCtx = document.getElementById("gasChart").getContext("2d");
@@ -61,16 +54,12 @@ function initCharts() {
         { label: "JIT Gas", backgroundColor: "#2979ff", data: Array(10).fill(0) }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { y: { ticks: { callback: val => val.toFixed(6) } } }
-    }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 initCharts();
 
-// === Helpers ===
+// === Helper Functions ===
 const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randomGas = () => +(Math.random() * 0.00008 + 0.00002).toFixed(6);
 const getRates = (scenario) => {
@@ -83,15 +72,14 @@ const getRates = (scenario) => {
 resetBtn.addEventListener("click", () => {
   totalExec = totalPend = totalFail = 0;
   totalGasAOT = totalGasJIT = 0;
-  modeData = { JIT: [], AOT: [] };
   document.querySelectorAll("#executedVal, #failedVal, #pendingVal, #totalRunVal")
     .forEach(el => el.textContent = 0);
   document.querySelectorAll("#jitGasVal, #aotGasVal, #totalGasVal")
     .forEach(el => el.textContent = "0.00000");
   txChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
   gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
-  txChart.update();
-  gasChart.update();
+  txChart.update(); gasChart.update();
+
   for (let i = 1; i <= 10; i++) {
     const s = document.getElementById(`slot-${i}`);
     s.querySelector(".exec").textContent = "0";
@@ -100,7 +88,7 @@ resetBtn.addEventListener("click", () => {
   }
 });
 
-// === MAIN SIMULATION ===
+// === SIMULATION CORE ===
 startBtn.addEventListener("click", () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
@@ -112,10 +100,13 @@ function runSimulation(mode, totalTX, scenario) {
   const { exec, pend, fail } = getRates(scenario);
   const slotTx = Array.from({ length: 10 }, () => randomBetween(8, 12));
   const scale = totalTX / slotTx.reduce((a, b) => a + b, 0);
+  let txTotal = 0;
 
   slotTx.forEach((base, i) => {
     const slot = document.getElementById(`slot-${i + 1}`);
     const txCount = Math.round(base * scale);
+    txTotal += txCount;
+
     const execCount = Math.round(txCount * exec);
     const pendCount = Math.round(txCount * pend);
     const failCount = txCount - execCount - pendCount;
@@ -125,24 +116,27 @@ function runSimulation(mode, totalTX, scenario) {
     slot.querySelector(".pend").textContent = runningPend;
     slot.querySelector(".fail").textContent = 0;
 
-    txChart.data.datasets[1].data[i] = runningPend; // start yellow visible
+    txChart.data.datasets[1].data[i] = runningPend;
     totalPend += runningPend;
     updateStats();
 
-    const sequence = [
-      ...Array(execCount).fill("E"),
-      ...Array(failCount).fill("F")
-    ].sort(() => Math.random() - 0.5);
-
-    // make pending decrease naturally
+    // pending decay
     const pendDecay = setInterval(() => {
       if (runningPend > 0) {
         runningPend--;
         slot.querySelector(".pend").textContent = runningPend;
         txChart.data.datasets[1].data[i] = runningPend;
+        totalPend--;
         txChart.update("none");
+        updateStats();
       } else clearInterval(pendDecay);
-    }, randomBetween(300, 600));
+    }, randomBetween(350, 600));
+
+    // execution sequence
+    const sequence = [
+      ...Array(execCount).fill("E"),
+      ...Array(failCount).fill("F")
+    ].sort(() => Math.random() - 0.5);
 
     sequence.forEach((s, idx) => {
       setTimeout(() => {
@@ -160,28 +154,31 @@ function runSimulation(mode, totalTX, scenario) {
           txChart.data.datasets[2].data[i] = f;
           totalFail++;
         }
-
         txChart.update("none");
         gasChart.update("none");
         updateStats();
-      }, idx * randomBetween(80, 140));
+      }, idx * randomBetween(80, 130) + randomBetween(300, 500));
     });
   });
+
+  document.getElementById("totalRunVal").textContent = txTotal;
 }
 
+// === UPDATE STATS ===
 function updateStats() {
   document.getElementById("executedVal").textContent = totalExec;
   document.getElementById("failedVal").textContent = totalFail;
   document.getElementById("pendingVal").textContent = totalPend;
-  document.getElementById("totalRunVal").textContent = totalExec + totalPend + totalFail;
   document.getElementById("jitGasVal").textContent = totalGasJIT.toFixed(6);
   document.getElementById("aotGasVal").textContent = totalGasAOT.toFixed(6);
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
 }
 
-// === COMPARE POPUP (larger, with data) ===
+// === COMPARE POPUP (fixed size, realistic data) ===
 compareBtn.addEventListener("click", () => {
   const total = totalExec + totalFail + totalPend;
+  if (!total) return;
+
   const execRate = ((totalExec / total) * 100).toFixed(1);
   const failRate = ((totalFail / total) * 100).toFixed(1);
   const pendRate = ((totalPend / total) * 100).toFixed(1);
@@ -191,34 +188,17 @@ compareBtn.addEventListener("click", () => {
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
-    <div class="popup-inner" style="width: 480px; max-width: 95%;">
+    <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
       <div class="compare-text">
-        <p>✅ Executed: <b>${execRate}%</b> &nbsp;&nbsp; ⚠️ Pending: <b>${pendRate}%</b> &nbsp;&nbsp; ❌ Failed: <b>${failRate}%</b></p>
-        <p>💡 AOT Gas trung bình: <b>${avgGasAOT.toFixed(6)}</b> | JIT Gas trung bình: <b>${avgGasJIT.toFixed(6)}</b></p>
-        <p>📈 AOT giảm lỗi ~<b>30%</b> & Gas tăng nhẹ ~<b>10%</b> để đạt hiệu suất ổn định hơn.</p>
+        <p>✅ Executed: <b>${execRate}%</b> | ⚠️ Pending: <b>${pendRate}%</b> | ❌ Failed: <b>${failRate}%</b></p>
+        <p>💡 AOT Gas TB: <b>${avgGasAOT.toFixed(6)}</b> | JIT Gas TB: <b>${avgGasJIT.toFixed(6)}</b></p>
+        <p>📈 AOT giảm lỗi ~30%, Gas tăng nhẹ ~10% để đạt hiệu suất ổn định hơn.</p>
       </div>
       <button class="closePopup">OK</button>
     </div>`;
+
   document.body.appendChild(popup);
-
   const ctx = document.getElementById("compareChart").getContext("2d");
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["Executed", "Pending", "Failed", "Gas (SOL)"],
-      datasets: [
-        { label: "JIT", backgroundColor: "#2979ff", data: [totalExec * 0.9, totalPend * 1.2, totalFail * 1.3, totalGasJIT] },
-        { label: "AOT", backgroundColor: "#00c853", data: [totalExec, totalPend * 0.7, totalFail * 0.6, totalGasAOT * 1.1] }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "top" } }
-    }
-  });
-
-  popup.querySelector(".closePopup").addEventListener("click", () => popup.remove());
-});
+  new Chart
