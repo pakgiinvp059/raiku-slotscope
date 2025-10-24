@@ -1,5 +1,4 @@
-// script.js — persistent cumulative simulation with realistic pending + isolated gas
-
+// script.js — TX chart as line + compare modal popup
 const slotsContainer = document.getElementById('slots');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -8,13 +7,14 @@ const txCountInput = document.getElementById('txCount');
 const scenarioSelect = document.getElementById('scenario');
 
 let txChart, gasChart, compareChart;
+let modal = null;
 
-// cumulative totals (persist until reset)
+// totals
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
 let modeData = { JIT: [], AOT: [] };
 
-// create 10 slot elements
+// --- create 10 slots ---
 for (let i = 1; i <= 10; i++) {
   const s = document.createElement('div');
   s.className = 'slot';
@@ -32,20 +32,25 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(s);
 }
 
-// init charts (datasets start at zero)
+// --- charts ---
 function initCharts() {
   const txCtx = document.getElementById('txChart').getContext('2d');
   txChart = new Chart(txCtx, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: 'Executed', backgroundColor: '#22c55e', data: Array(10).fill(0) },
-        { label: 'Pending',  backgroundColor: '#facc15', data: Array(10).fill(0) },
-        { label: 'Failed',   backgroundColor: '#ef4444', data: Array(10).fill(0) }
+        { label: 'Executed', borderColor: '#22c55e', data: Array(10).fill(0), tension: 0.3 },
+        { label: 'Pending', borderColor: '#facc15', data: Array(10).fill(0), tension: 0.3 },
+        { label: 'Failed', borderColor: '#ef4444', data: Array(10).fill(0), tension: 0.3 }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true } }
+    }
   });
 
   const gasCtx = document.getElementById('gasChart').getContext('2d');
@@ -61,217 +66,172 @@ function initCharts() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: { y: { ticks: { callback: v => Number(v).toFixed(6) } } },
-      plugins: { legend: { position: 'top' } }
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { ticks: { callback: v => Number(v).toFixed(6) } } }
     }
   });
 }
 initCharts();
 
-// utilities
-function formatGas(n){ return Number(n).toFixed(6); }
-function rndGas(){ return +(0.00003 + Math.random()*0.00003).toFixed(6); } // 0.00003..0.00006
-function partition(total){
+// --- utils ---
+function rndGas() { return +(0.00003 + Math.random() * 0.00003).toFixed(6); }
+function partition(total) {
   const per = Math.floor(total / 10);
   const rem = total % 10;
-  return Array.from({length:10}, (_,i) => per + (i < rem ? 1 : 0));
+  return Array.from({ length: 10 }, (_, i) => per + (i < rem ? 1 : 0));
 }
-function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
-
-function scenarioRates(s){
-  if (s === 'HighFee') return { exec:0.85, pend:0.10, fail:0.05 };
-  if (s === 'Congested') return { exec:0.70, pend:0.22, fail:0.08 };
-  return { exec:0.92, pend:0.06, fail:0.02 };
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function formatGas(n) { return Number(n).toFixed(6); }
+function updateTotals() {
+  document.getElementById('executedVal').textContent = totalExec;
+  document.getElementById('failedVal').textContent = totalFail;
+  document.getElementById('pendingVal').textContent = totalPend;
+  document.getElementById('jitGasVal').textContent = formatGas(totalGasJIT);
+  document.getElementById('aotGasVal').textContent = formatGas(totalGasAOT);
+  document.getElementById('totalGasVal').textContent = formatGas(totalGasAOT + totalGasJIT);
 }
 
-// update totals display
-function updateTotalsDisplay(){
-  document.getElementById('executedVal').innerText = totalExec;
-  document.getElementById('failedVal').innerText = totalFail;
-  document.getElementById('pendingVal').innerText = totalPend;
-  document.getElementById('jitGasVal').innerText = formatGas(totalGasJIT);
-  document.getElementById('aotGasVal').innerText = formatGas(totalGasAOT);
-  document.getElementById('totalGasVal').innerText = formatGas(totalGasAOT + totalGasJIT);
+// --- scenario ---
+function scenarioRates(s) {
+  if (s === 'HighFee') return { exec: 0.85, pend: 0.10, fail: 0.05 };
+  if (s === 'Congested') return { exec: 0.7, pend: 0.22, fail: 0.08 };
+  return { exec: 0.92, pend: 0.06, fail: 0.02 };
 }
 
-// main: run simulation (with pending immediate + conversions over time)
+// --- main simulation ---
 function runSimulation(mode, totalTX, scenario) {
   const slots = partition(totalTX);
-  const baseRates = scenarioRates(scenario);
-  const modeAdj = mode === 'AOT' ? { exec:+0.05, pend:-0.03, fail:-0.02 } : { exec:0, pend:0, fail:0 };
+  const rates = scenarioRates(scenario);
+  const adj = mode === 'AOT' ? { exec: +0.05, pend: -0.03, fail: -0.02 } : { exec: 0, pend: 0, fail: 0 };
+  const runSummary = { exec: 0, pend: 0, fail: 0, gasAOT: 0, gasJIT: 0 };
 
-  // per-run summary (for modeData)
-  const runSummary = { exec:0, pend:0, fail:0, gasAOT:0, gasJIT:0 };
-
-  // For each slot: compute targets and schedule conversions
   slots.forEach((base, i) => {
-    // compute probabilities
-    let execP = baseRates.exec + (modeAdj.exec || 0);
-    let pendP = baseRates.pend + (modeAdj.pend || 0);
+    let execP = rates.exec + adj.exec;
+    let pendP = rates.pend + adj.pend;
     let failP = 1 - execP - pendP;
-    // normalize if necessary
-    const sumP = execP + pendP + failP;
-    execP /= sumP; pendP /= sumP; failP /= sumP;
-    // ensure pend >= fail
-    if (pendP < failP) { const d = (failP - pendP); pendP += d; execP = Math.max(0, 1 - pendP - failP); }
+    const s = execP + pendP + failP;
+    execP /= s; pendP /= s; failP /= s;
+    if (pendP < failP) { pendP += 0.02; execP -= 0.02; }
 
-    // compute counts
-    let execT = Math.round(base * execP);
-    let pendT = Math.round(base * pendP);
-    let failT = base - execT - pendT;
-    // guard
-    if (pendT < failT) {
-      const need = failT - pendT;
-      const mv = Math.min(need, execT);
-      pendT += mv; execT -= mv; failT = base - execT - pendT;
-    }
-    let sum = execT + pendT + failT;
-    if (sum !== base) execT += (base - sum); // small adjust
+    const execT = Math.round(base * execP);
+    const pendT = Math.round(base * pendP);
+    const failT = base - execT - pendT;
 
-    // Increase pending immediately (both display and global)
-    const slotEl = document.getElementById(`slot-${i+1}`);
-    const curPend = parseInt(slotEl.querySelector('.pend').textContent || '0', 10);
-    slotEl.querySelector('.pend').textContent = curPend + pendT;
-    // Update chart pending cumulative
-    txChart.data.datasets[1].data[i] += pendT;
     totalPend += pendT;
     runSummary.pend += pendT;
+    txChart.data.datasets[1].data[i] += pendT;
+    document.getElementById(`slot-${i + 1}`).querySelector('.pend').textContent = pendT;
 
-    // Prepare conversions list: execT times 'E', failT times 'F'
-    const conversions = [];
-    for (let k=0;k<execT;k++) conversions.push('E');
-    for (let k=0;k<failT;k++) conversions.push('F');
-    shuffle(conversions);
-
-    // schedule conversions with small random delays to look realistic
-    const slotStart = i * 120; // stagger slot starts
-    conversions.forEach((outcome, idx) => {
-      const delay = slotStart + idx * (25 + Math.random()*40);
+    const conv = [...Array(execT).fill('E'), ...Array(failT).fill('F')];
+    shuffle(conv);
+    conv.forEach((o, j) => {
       setTimeout(() => {
-        // decrement displayed pending
-        const el = document.getElementById(`slot-${i+1}`);
-        const pendNow = Math.max(0, parseInt(el.querySelector('.pend').textContent || '0',10) - 1);
-        el.querySelector('.pend').textContent = pendNow;
+        const el = document.getElementById(`slot-${i + 1}`);
+        const p = Math.max(0, parseInt(el.querySelector('.pend').textContent) - 1);
+        el.querySelector('.pend').textContent = p;
 
-        if (outcome === 'E') {
-          // executed: increment display and totals; add gas for mode
-          const execNow = parseInt(el.querySelector('.exec').textContent || '0',10) + 1;
-          el.querySelector('.exec').textContent = execNow;
-          totalExec += 1; runSummary.exec += 1;
+        if (o === 'E') {
+          const ex = parseInt(el.querySelector('.exec').textContent) + 1;
+          el.querySelector('.exec').textContent = ex;
+          totalExec++;
+          runSummary.exec++;
           const g = rndGas();
           if (mode === 'AOT') { totalGasAOT += g; runSummary.gasAOT += g; gasChart.data.datasets[0].data[i] += g; }
           else { totalGasJIT += g; runSummary.gasJIT += g; gasChart.data.datasets[1].data[i] += g; }
-          // update charts (add 1 executed, remove 1 pending)
           txChart.data.datasets[0].data[i] += 1;
           txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
         } else {
-          // failed
-          const failNow = parseInt(el.querySelector('.fail').textContent || '0',10) + 1;
-          el.querySelector('.fail').textContent = failNow;
-          totalFail += 1; runSummary.fail += 1;
+          const f = parseInt(el.querySelector('.fail').textContent) + 1;
+          el.querySelector('.fail').textContent = f;
+          totalFail++;
+          runSummary.fail++;
           txChart.data.datasets[2].data[i] += 1;
           txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
         }
 
-        // after each conversion update charts and totals display
         txChart.update();
         gasChart.update();
-        updateTotalsDisplay();
-      }, delay);
+        updateTotals();
+      }, j * (20 + Math.random() * 30));
     });
   });
 
-  // save run summary (note: runSummary.exec/pending/fail are per-run counts, gas too)
-  modeData[mode].push({
-    exec: runSummary.exec,
-    pend: runSummary.pend,
-    fail: runSummary.fail,
-    gasAOT: +runSummary.gasAOT.toFixed(6),
-    gasJIT: +runSummary.gasJIT.toFixed(6)
-  });
-
-  // update charts and totals (pending already added)
+  modeData[mode].push(runSummary);
   txChart.update();
   gasChart.update();
-  updateTotalsDisplay();
+  updateTotals();
 }
 
-// handlers
-startBtn.addEventListener('click', () => {
+// --- buttons ---
+startBtn.onclick = () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
-  const totalTX = Math.max(1, parseInt(txCountInput.value) || 100);
+  const totalTX = parseInt(txCountInput.value) || 100;
   runSimulation(mode, totalTX, scenario);
-});
+};
 
-resetBtn.addEventListener('click', () => {
-  // reset totals & per-slot displays & charts & compare
+resetBtn.onclick = () => {
   totalExec = totalPend = totalFail = 0;
   totalGasAOT = totalGasJIT = 0;
   modeData = { JIT: [], AOT: [] };
-
-  for (let i=1;i<=10;i++){
-    const s = document.getElementById(`slot-${i}`);
-    s.querySelector('.exec').textContent = 0;
-    s.querySelector('.pend').textContent = 0;
-    s.querySelector('.fail').textContent = 0;
-    txChart.data.datasets.forEach(ds => ds.data[i-1] = 0);
-    gasChart.data.datasets.forEach(ds => ds.data[i-1] = 0);
+  for (let i = 1; i <= 10; i++) {
+    const el = document.getElementById(`slot-${i}`);
+    el.querySelectorAll('.exec,.pend,.fail').forEach(x => x.textContent = 0);
   }
+  txChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
+  gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
   txChart.update();
   gasChart.update();
-  updateTotalsDisplay();
+  updateTotals();
+};
 
-  // remove compare chart/info
-  const old = document.getElementById('compareChart');
-  if (old) old.remove();
-  const info = document.querySelector('.compare-info');
-  if (info) info.remove();
-  if (compareChart){ try{ compareChart.destroy(); }catch(e){} compareChart=null; }
-});
+// --- compare modal ---
+compareBtn.onclick = () => {
+  if (modal) modal.remove();
 
-// compare
-compareBtn.addEventListener('click', () => {
-  // remove old compare canvas/info
-  const old = document.getElementById('compareChart');
-  if (old) old.remove();
-  const oldInfo = document.querySelector('.compare-info');
-  if (oldInfo) oldInfo.remove();
-  if (compareChart) try{ compareChart.destroy(); }catch(e){}
+  modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h3>Compare JIT vs AOT</h3>
+      <canvas id="compareChart"></canvas>
+      <div class="compare-info" id="compareInfo"></div>
+    </div>`;
+  document.body.appendChild(modal);
 
-  // averages across recorded runs for each mode
-  const avg = (arr, key) => arr.length ? arr.reduce((a,b)=>a+b[key],0)/arr.length : 0;
+  modal.querySelector('.close-btn').onclick = () => modal.remove();
+
   const j = modeData.JIT, a = modeData.AOT;
-  const avgJ = { exec: avg(j,'exec'), pend: avg(j,'pend'), fail: avg(j,'fail'), gas: avg(j,'gasJIT') || avg(j,'gas') || 0 };
-  const avgA = { exec: avg(a,'exec'), pend: avg(a,'pend'), fail: avg(a,'fail'), gas: avg(a,'gasAOT') || avg(a,'gas') || 0 };
+  const avg = (arr, key) => arr.length ? arr.reduce((x, y) => x + y[key], 0) / arr.length : 0;
+  const avgJ = { exec: avg(j, 'exec'), pend: avg(j, 'pend'), fail: avg(j, 'fail'), gas: avg(j, 'gasJIT') || 0 };
+  const avgA = { exec: avg(a, 'exec'), pend: avg(a, 'pend'), fail: avg(a, 'fail'), gas: avg(a, 'gasAOT') || 0 };
 
-  // canvas
-  const c = document.createElement('canvas');
-  c.id = 'compareChart';
-  document.querySelector('.stats').after(c);
-
-  compareChart = new Chart(c.getContext('2d'), {
+  const ctx = modal.querySelector('#compareChart').getContext('2d');
+  compareChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Executed','Pending','Failed','Gas (SOL)'],
+      labels: ['Executed', 'Pending', 'Failed', 'Gas (SOL)'],
       datasets: [
-        { label: 'JIT', backgroundColor:'#2979ff', data: [avgJ.exec, avgJ.pend, avgJ.fail, avgJ.gas] },
-        { label: 'AOT', backgroundColor:'#00c853', data: [avgA.exec, avgA.pend, avgA.fail, avgA.gas] }
+        { label: 'JIT', backgroundColor: '#2979ff', data: [avgJ.exec, avgJ.pend, avgJ.fail, avgJ.gas] },
+        { label: 'AOT', backgroundColor: '#00c853', data: [avgA.exec, avgA.pend, avgA.fail, avgA.gas] }
       ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } } }
+    options: { responsive: true, plugins: { legend: { position: 'top' } } }
   });
 
-  // summary
-  const pendImprove = avgJ.pend ? ((avgJ.pend - avgA.pend)/avgJ.pend*100).toFixed(1) : '0.0';
-  const failImprove = avgJ.fail ? ((avgJ.fail - avgA.fail)/avgJ.fail*100).toFixed(1) : '0.0';
-  const gasIncrease = avgJ.gas ? ((avgA.gas - avgJ.gas)/avgJ.gas*100).toFixed(1) : '0.0';
+  const pendImprove = avgJ.pend ? ((avgJ.pend - avgA.pend) / avgJ.pend * 100).toFixed(1) : 0;
+  const failImprove = avgJ.fail ? ((avgJ.fail - avgA.fail) / avgJ.fail * 100).toFixed(1) : 0;
+  const gasInc = avgJ.gas ? ((avgA.gas - avgJ.gas) / avgJ.gas * 100).toFixed(1) : 0;
 
-  const info = document.createElement('div');
-  info.className = 'compare-info';
-  info.innerHTML = `
-    <p>💡 <strong>AOT</strong> reduces <strong>${pendImprove}%</strong> Pending and <strong>${failImprove}%</strong> Failed vs JIT (avg per-run).</p>
-    <p>⚙️ Gas AOT increases ~ <strong>${gasIncrease}%</strong> vs JIT to achieve higher stability.</p>
+  modal.querySelector('#compareInfo').innerHTML = `
+    <p>💡 <b>AOT</b> reduces Pending by <b>${pendImprove}%</b> and Failed by <b>${failImprove}%</b> vs JIT.</p>
+    <p>⚙️ Gas AOT increases ~<b>${gasInc}%</b> for higher stability.</p>
   `;
-  document.body.appendChild(info);
-});
+};
