@@ -47,13 +47,9 @@
       <div class="step"><span>✅</span> TX Confirmed<br />Finality</div>
     </div>
 
-    <div class="chart-area">
-      <div class="chart" id="txChartWrapper">
-        <canvas id="txChart"></canvas>
-      </div>
-      <div class="chart" id="gasChartWrapper">
-        <canvas id="gasChart"></canvas>
-      </div>
+    <div class="chart-row">
+      <div class="chart tx-chart"><canvas id="txChart"></canvas></div>
+      <div class="chart gas-chart"><canvas id="gasChart"></canvas></div>
     </div>
   </section>
 
@@ -64,6 +60,15 @@
     <div class="stat" id="jitGas">JIT Gas (SOL)<br><span>0.00000</span></div>
     <div class="stat" id="aotGas">AOT Gas (SOL)<br><span>0.00000</span></div>
     <div class="stat" id="totalGas">Total Gas (SOL)<br><span>0.00000</span></div>
+  </div>
+
+  <!-- Popup Compare -->
+  <div id="comparePopup" class="compare-popup hidden">
+    <div class="popup-content">
+      <h3>📊 So sánh hiệu suất JIT vs AOT</h3>
+      <canvas id="compareChart"></canvas>
+      <button id="closeCompare">Đóng</button>
+    </div>
   </div>
 
   <script src="script.js"></script>
