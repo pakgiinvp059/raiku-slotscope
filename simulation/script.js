@@ -4,7 +4,7 @@ const gasChartCtx = document.getElementById("gasChart").getContext("2d");
 
 let executed = 0, failed = 0, pending = 0;
 let jitGas = 0, aotGas = 0;
-let compareChart = null; // chart popup reference
+let compareChart = null;
 
 // tạo slot
 for (let i = 1; i <= 10; i++) {
@@ -59,7 +59,7 @@ const gasChart = new Chart(gasChartCtx, {
   }
 });
 
-// start simulation
+// START SIMULATION
 document.getElementById("startBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
   const txCount = parseInt(document.getElementById("txCount").value);
@@ -78,7 +78,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
     slot.querySelector(".pend").textContent = pend;
     slot.querySelector(".fail").textContent = fail;
 
-    // đổi màu nền slot theo kết quả
     const successRate = exec / (exec + pend + fail);
     if (successRate > 0.8) slot.style.backgroundColor = "#e8fdf0";
     else if (fail > pend) slot.style.backgroundColor = "#ffecec";
@@ -114,7 +113,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   document.querySelector("#totalGas span").textContent = (jitGas + aotGas).toFixed(5);
 });
 
-// popup so sánh
+// COMPARE POPUP
 const popup = document.createElement("div");
 popup.id = "comparePopup";
 popup.className = "compare-popup hidden";
@@ -128,8 +127,6 @@ document.body.appendChild(popup);
 
 document.getElementById("compareBtn").addEventListener("click", () => {
   popup.classList.remove("hidden");
-
-  // tránh vẽ chồng chart
   if (compareChart) compareChart.destroy();
 
   compareChart = new Chart(document.getElementById("compareChart").getContext("2d"), {
@@ -141,21 +138,16 @@ document.getElementById("compareBtn").addEventListener("click", () => {
         { label: "AOT", data: [executed * 0.98, failed * 0.6, pending * 0.8, aotGas], backgroundColor: "#00c853" },
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true } }
-    }
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
   });
 
   document.getElementById("closeCompare").onclick = () => popup.classList.add("hidden");
 });
 
-// RESET ✅
+// RESET
 document.getElementById("resetBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
 
-  // reset slot
   for (let i = 1; i <= 10; i++) {
     const slot = document.getElementById(`slot-${i}`);
     slot.querySelector(".exec").textContent = 0;
@@ -164,13 +156,11 @@ document.getElementById("resetBtn").addEventListener("click", () => {
     slot.style.backgroundColor = "#fff";
   }
 
-  // reset charts
   txChart.data.datasets.forEach(ds => ds.data = []);
   gasChart.data.datasets.forEach(ds => ds.data = []);
   txChart.update();
   gasChart.update();
 
-  // reset stats
   document.querySelector("#executedTx span").textContent = 0;
   document.querySelector("#failedTx span").textContent = 0;
   document.querySelector("#pendingTx span").textContent = 0;
