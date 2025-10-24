@@ -1,4 +1,4 @@
-// Raiku SlotScope — Fixed Interactive Logic
+// === Raiku SlotScope — Stable Animated Simulation ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -12,12 +12,12 @@ let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
 let modeData = { JIT: [], AOT: [] };
 
-// ====== INIT SLOTS ======
+// === Create 10 Slots ===
 for (let i = 1; i <= 10; i++) {
-  const s = document.createElement("div");
-  s.className = "slot";
-  s.id = `slot-${i}`;
-  s.innerHTML = `
+  const slot = document.createElement("div");
+  slot.className = "slot";
+  slot.id = `slot-${i}`;
+  slot.innerHTML = `
     <b>Slot ${i}</b>
     <div class="dots">
       <div class="dot green"></div>
@@ -27,10 +27,10 @@ for (let i = 1; i <= 10; i++) {
     <div class="slot-values">
       <span class="exec">0</span> / <span class="pend">0</span> / <span class="fail">0</span>
     </div>`;
-  slotsContainer.appendChild(s);
+  slotsContainer.appendChild(slot);
 }
 
-// ====== INIT CHARTS ======
+// === Init Charts ===
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -70,86 +70,86 @@ function initCharts() {
 }
 initCharts();
 
-// ====== UTILS ======
+// === Helpers ===
 const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randomGas = () => +(Math.random() * 0.00008 + 0.00002).toFixed(6);
-const getRates = scenario => {
-  if (scenario === "HighFee") return { exec: 0.9, pend: 0.08, fail: 0.02 };
-  if (scenario === "Congested") return { exec: 0.85, pend: 0.1, fail: 0.05 };
+const getRates = (scenario) => {
+  if (scenario === "HighFee") return { exec: 0.88, pend: 0.09, fail: 0.03 };
+  if (scenario === "Congested") return { exec: 0.82, pend: 0.12, fail: 0.06 };
   return { exec: 0.93, pend: 0.05, fail: 0.02 };
 };
 
-// ====== RESET ======
+// === RESET ===
 resetBtn.addEventListener("click", () => {
   totalExec = totalPend = totalFail = 0;
   totalGasAOT = totalGasJIT = 0;
   modeData = { JIT: [], AOT: [] };
-  document.getElementById("executedVal").innerText = 0;
-  document.getElementById("failedVal").innerText = 0;
-  document.getElementById("pendingVal").innerText = 0;
-  document.getElementById("totalRunVal").innerText = 0;
-  document.getElementById("jitGasVal").innerText = "0.00000";
-  document.getElementById("aotGasVal").innerText = "0.00000";
-  document.getElementById("totalGasVal").innerText = "0.00000";
+  document.querySelectorAll("#executedVal, #failedVal, #pendingVal, #totalRunVal")
+    .forEach(el => el.textContent = 0);
+  document.querySelectorAll("#jitGasVal, #aotGasVal, #totalGasVal")
+    .forEach(el => el.textContent = "0.00000");
   txChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
   gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
-  txChart.update(); gasChart.update();
+  txChart.update();
+  gasChart.update();
   for (let i = 1; i <= 10; i++) {
-    const slot = document.getElementById(`slot-${i}`);
-    slot.querySelector(".exec").textContent = "0";
-    slot.querySelector(".pend").textContent = "0";
-    slot.querySelector(".fail").textContent = "0";
+    const s = document.getElementById(`slot-${i}`);
+    s.querySelector(".exec").textContent = "0";
+    s.querySelector(".pend").textContent = "0";
+    s.querySelector(".fail").textContent = "0";
   }
 });
 
-// ====== SIMULATION ======
+// === MAIN SIMULATION ===
 startBtn.addEventListener("click", () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
   const totalTX = parseInt(txCountInput.value) || 100;
-  simulateRun(mode, totalTX, scenario);
+  runSimulation(mode, totalTX, scenario);
 });
 
-function simulateRun(mode, totalTX, scenario) {
+function runSimulation(mode, totalTX, scenario) {
   const { exec, pend, fail } = getRates(scenario);
-  const slotTX = Array.from({ length: 10 }, () => randomBetween(8, 12));
-  const scale = totalTX / slotTX.reduce((a, b) => a + b, 0);
+  const slotTx = Array.from({ length: 10 }, () => randomBetween(8, 12));
+  const scale = totalTX / slotTx.reduce((a, b) => a + b, 0);
 
-  slotTX.forEach((base, i) => {
-    const txSlot = Math.round(base * scale);
-    const execCount = Math.round(txSlot * exec);
-    const pendCount = Math.round(txSlot * pend);
-    const failCount = txSlot - execCount - pendCount;
-
-    let currentPending = pendCount;
+  slotTx.forEach((base, i) => {
     const slot = document.getElementById(`slot-${i + 1}`);
-    slot.querySelector(".exec").textContent = "0";
-    slot.querySelector(".pend").textContent = pendCount;
-    slot.querySelector(".fail").textContent = "0";
+    const txCount = Math.round(base * scale);
+    const execCount = Math.round(txCount * exec);
+    const pendCount = Math.round(txCount * pend);
+    const failCount = txCount - execCount - pendCount;
 
-    txChart.data.datasets[1].data[i] = pendCount;
-    totalPend += pendCount;
+    let runningPend = pendCount;
+    slot.querySelector(".exec").textContent = 0;
+    slot.querySelector(".pend").textContent = runningPend;
+    slot.querySelector(".fail").textContent = 0;
+
+    txChart.data.datasets[1].data[i] = runningPend;
+    totalPend += runningPend;
     updateStats();
 
-    const seq = [
+    const sequence = [
       ...Array(execCount).fill("E"),
       ...Array(failCount).fill("F")
     ].sort(() => Math.random() - 0.5);
 
-    seq.forEach((status, j) => {
+    sequence.forEach((s, idx) => {
       setTimeout(() => {
-        if (currentPending > 0) currentPending--;
-        slot.querySelector(".pend").textContent = currentPending;
-        txChart.data.datasets[1].data[i] = currentPending;
+        if (runningPend > 0) {
+          runningPend--;
+          slot.querySelector(".pend").textContent = runningPend;
+          txChart.data.datasets[1].data[i] = runningPend;
+        }
 
-        if (status === "E") {
+        if (s === "E") {
           const e = +slot.querySelector(".exec").textContent + 1;
           slot.querySelector(".exec").textContent = e;
           txChart.data.datasets[0].data[i] = e;
           totalExec++;
-          const g = randomGas();
-          if (mode === "AOT") { gasChart.data.datasets[0].data[i] += g; totalGasAOT += g; }
-          else { gasChart.data.datasets[1].data[i] += g; totalGasJIT += g; }
+          const gas = randomGas();
+          if (mode === "AOT") { gasChart.data.datasets[0].data[i] += gas; totalGasAOT += gas; }
+          else { gasChart.data.datasets[1].data[i] += gas; totalGasJIT += gas; }
         } else {
           const f = +slot.querySelector(".fail").textContent + 1;
           slot.querySelector(".fail").textContent = f;
@@ -160,7 +160,7 @@ function simulateRun(mode, totalTX, scenario) {
         txChart.update("none");
         gasChart.update("none");
         updateStats();
-      }, j * randomBetween(80, 130));
+      }, idx * randomBetween(80, 140));
     });
   });
 }
@@ -175,7 +175,7 @@ function updateStats() {
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
 }
 
-// ====== COMPARE POPUP ======
+// === COMPARE POPUP FIXED ===
 compareBtn.addEventListener("click", () => {
   const popup = document.createElement("div");
   popup.className = "popup-compare";
@@ -183,7 +183,7 @@ compareBtn.addEventListener("click", () => {
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p>💡 AOT giảm lỗi Pending & Failed rõ rệt, gas tăng nhẹ để ổn định hơn.</p>
+      <p>💡 AOT giảm Pending & Failed khoảng <b>20–40%</b><br>Gas tăng nhẹ để đạt độ ổn định cao hơn.</p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
@@ -194,7 +194,7 @@ compareBtn.addEventListener("click", () => {
     data: {
       labels: ["Executed TX", "Pending TX", "Failed TX", "Gas (SOL)"],
       datasets: [
-        { label: "JIT", backgroundColor: "#2979ff", data: [totalExec * 0.9, totalPend * 1.1, totalFail * 1.2, totalGasJIT] },
+        { label: "JIT", backgroundColor: "#2979ff", data: [totalExec * 0.9, totalPend * 1.2, totalFail * 1.3, totalGasJIT] },
         { label: "AOT", backgroundColor: "#00c853", data: [totalExec, totalPend * 0.7, totalFail * 0.6, totalGasAOT * 1.1] }
       ]
     },
