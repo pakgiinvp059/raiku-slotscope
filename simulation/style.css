@@ -4,6 +4,7 @@ body {
   color: #222;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 header {
@@ -33,13 +34,15 @@ button {
 }
 button:hover { background: #007acc; }
 
-/* --- SLOT --- */
+/* SLOT */
 .slots-container {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
   padding: 10px 0;
+  width: 90%;
+  margin: 0 auto;
 }
 
 .slot {
@@ -48,9 +51,8 @@ button:hover { background: #007acc; }
   text-align: center;
   border: 2px solid #dce3eb;
   border-radius: 10px;
-  background-color: #fff;
-  transition: background-color 0.4s;
-  box-shadow: 0 0 5px #e0e0e0;
+  background: #fff;
+  transition: background-color 0.3s;
 }
 
 .dots {
@@ -64,12 +66,12 @@ button:hover { background: #007acc; }
 .yellow { background: #ffb300; }
 .red { background: #ff5252; }
 
-/* --- BLUEPRINT --- */
+/* BLUEPRINT */
 .blueprint {
-  width: 80%; /* ✅ rút gọn chiều rộng tổng thể */
+  width: 90%; /* ✅ Bằng với hàng Slot */
   margin: 15px auto;
   background: white;
-  padding: 20px;
+  padding: 15px;
   border-radius: 10px;
   box-shadow: 0 0 6px #ccc;
 }
@@ -85,15 +87,18 @@ button:hover { background: #007acc; }
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
-/* --- CHART ROW --- */
+/* --- BIỂU ĐỒ --- */
 .chart-row {
   display: flex;
   justify-content: space-between;
-  gap: 15px;
+  align-items: stretch;
+  width: 100%;
   height: 320px;
+  gap: 15px;
+  box-sizing: border-box;
 }
 
 .chart {
@@ -103,16 +108,17 @@ button:hover { background: #007acc; }
   padding: 10px;
 }
 
-.tx-chart { flex: 3; }
-.gas-chart { flex: 1; }
+.tx-chart { flex: 3; }   /* 75% */
+.gas-chart { flex: 1; }  /* 25% */
 
-/* --- STATS --- */
+/* STATS */
 .stats {
   display: flex;
   justify-content: center;
   gap: 15px;
   margin: 20px auto;
   flex-wrap: wrap;
+  width: 90%;
 }
 
 .stat {
@@ -126,31 +132,4 @@ button:hover { background: #007acc; }
   color: #007bff;
   font-weight: bold;
   font-size: 18px;
-}
-
-/* --- POPUP --- */
-.compare-popup {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-.hidden { display: none; }
-
-.popup-content {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  width: 500px;
-  box-shadow: 0 0 10px #0003;
-  text-align: center;
-}
-.popup-content h3 { margin-bottom: 15px; }
-.popup-content button {
-  background: #007bff;
-  margin-top: 10px;
 }
