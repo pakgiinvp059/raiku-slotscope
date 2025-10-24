@@ -1,4 +1,4 @@
-// script.js — TX chart as line + compare modal popup
+// script.js — realistic TX variation + small compare popup
 const slotsContainer = document.getElementById('slots');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -7,14 +7,14 @@ const txCountInput = document.getElementById('txCount');
 const scenarioSelect = document.getElementById('scenario');
 
 let txChart, gasChart, compareChart;
-let modal = null;
+let popup = null;
 
 // totals
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
 let modeData = { JIT: [], AOT: [] };
 
-// --- create 10 slots ---
+// --- create slots ---
 for (let i = 1; i <= 10; i++) {
   const s = document.createElement('div');
   s.className = 'slot';
@@ -32,7 +32,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(s);
 }
 
-// --- charts ---
+// --- init charts ---
 function initCharts() {
   const txCtx = document.getElementById('txChart').getContext('2d');
   txChart = new Chart(txCtx, {
@@ -40,16 +40,17 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: 'Executed', borderColor: '#22c55e', data: Array(10).fill(0), tension: 0.3 },
-        { label: 'Pending', borderColor: '#facc15', data: Array(10).fill(0), tension: 0.3 },
-        { label: 'Failed', borderColor: '#ef4444', data: Array(10).fill(0), tension: 0.3 }
+        { label: 'Executed', borderColor: '#22c55e', backgroundColor: '#22c55e22', data: Array(10).fill(0), tension: 0.35 },
+        { label: 'Pending', borderColor: '#facc15', backgroundColor: '#facc1522', data: Array(10).fill(0), tension: 0.35 },
+        { label: 'Failed', borderColor: '#ef4444', backgroundColor: '#ef444422', data: Array(10).fill(0), tension: 0.35 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { position: 'top' } },
-      scales: { y: { beginAtZero: true } }
+      scales: { y: { beginAtZero: true } },
+      animation: { duration: 500, easing: 'easeOutQuad' }
     }
   });
 
@@ -75,19 +76,18 @@ initCharts();
 
 // --- utils ---
 function rndGas() { return +(0.00003 + Math.random() * 0.00003).toFixed(6); }
+function formatGas(n) { return Number(n).toFixed(6); }
 function partition(total) {
   const per = Math.floor(total / 10);
   const rem = total % 10;
   return Array.from({ length: 10 }, (_, i) => per + (i < rem ? 1 : 0));
 }
-function shuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+function shuffle(a) { for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a; }
+function scenarioRates(s) {
+  if (s === 'HighFee') return { exec: 0.85, pend: 0.10, fail: 0.05 };
+  if (s === 'Congested') return { exec: 0.7, pend: 0.22, fail: 0.08 };
+  return { exec: 0.92, pend: 0.06, fail: 0.02 };
 }
-function formatGas(n) { return Number(n).toFixed(6); }
 function updateTotals() {
   document.getElementById('executedVal').textContent = totalExec;
   document.getElementById('failedVal').textContent = totalFail;
@@ -97,27 +97,19 @@ function updateTotals() {
   document.getElementById('totalGasVal').textContent = formatGas(totalGasAOT + totalGasJIT);
 }
 
-// --- scenario ---
-function scenarioRates(s) {
-  if (s === 'HighFee') return { exec: 0.85, pend: 0.10, fail: 0.05 };
-  if (s === 'Congested') return { exec: 0.7, pend: 0.22, fail: 0.08 };
-  return { exec: 0.92, pend: 0.06, fail: 0.02 };
-}
-
-// --- main simulation ---
+// --- simulation ---
 function runSimulation(mode, totalTX, scenario) {
   const slots = partition(totalTX);
-  const rates = scenarioRates(scenario);
+  const baseRates = scenarioRates(scenario);
   const adj = mode === 'AOT' ? { exec: +0.05, pend: -0.03, fail: -0.02 } : { exec: 0, pend: 0, fail: 0 };
   const runSummary = { exec: 0, pend: 0, fail: 0, gasAOT: 0, gasJIT: 0 };
 
   slots.forEach((base, i) => {
-    let execP = rates.exec + adj.exec;
-    let pendP = rates.pend + adj.pend;
+    const drift = (Math.random() - 0.5) * 0.06; // slot variance
+    let execP = baseRates.exec + adj.exec + drift;
+    let pendP = baseRates.pend + adj.pend - drift / 2;
     let failP = 1 - execP - pendP;
-    const s = execP + pendP + failP;
-    execP /= s; pendP /= s; failP /= s;
-    if (pendP < failP) { pendP += 0.02; execP -= 0.02; }
+    if (pendP < failP) pendP = failP + 0.03;
 
     const execT = Math.round(base * execP);
     const pendT = Math.round(base * pendP);
@@ -145,27 +137,25 @@ function runSimulation(mode, totalTX, scenario) {
           if (mode === 'AOT') { totalGasAOT += g; runSummary.gasAOT += g; gasChart.data.datasets[0].data[i] += g; }
           else { totalGasJIT += g; runSummary.gasJIT += g; gasChart.data.datasets[1].data[i] += g; }
           txChart.data.datasets[0].data[i] += 1;
-          txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
         } else {
           const f = parseInt(el.querySelector('.fail').textContent) + 1;
           el.querySelector('.fail').textContent = f;
           totalFail++;
           runSummary.fail++;
           txChart.data.datasets[2].data[i] += 1;
-          txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
         }
-
+        txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
         txChart.update();
         gasChart.update();
         updateTotals();
-      }, j * (20 + Math.random() * 30));
+      }, j * (30 + Math.random() * 40));
     });
   });
 
   modeData[mode].push(runSummary);
+  updateTotals();
   txChart.update();
   gasChart.update();
-  updateTotals();
 }
 
 // --- buttons ---
@@ -191,29 +181,27 @@ resetBtn.onclick = () => {
   updateTotals();
 };
 
-// --- compare modal ---
+// --- small popup compare ---
 compareBtn.onclick = () => {
-  if (modal) modal.remove();
-
-  modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <span class="close-btn">&times;</span>
-      <h3>Compare JIT vs AOT</h3>
+  if (popup) popup.remove();
+  popup = document.createElement('div');
+  popup.className = 'popup-compare';
+  popup.innerHTML = `
+    <div class="popup-inner">
+      <strong>JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <div class="compare-info" id="compareInfo"></div>
+      <div id="compareInfo"></div>
+      <button class="closePopup">OK</button>
     </div>`;
-  document.body.appendChild(modal);
-
-  modal.querySelector('.close-btn').onclick = () => modal.remove();
+  document.body.appendChild(popup);
+  popup.querySelector('.closePopup').onclick = () => popup.remove();
 
   const j = modeData.JIT, a = modeData.AOT;
   const avg = (arr, key) => arr.length ? arr.reduce((x, y) => x + y[key], 0) / arr.length : 0;
   const avgJ = { exec: avg(j, 'exec'), pend: avg(j, 'pend'), fail: avg(j, 'fail'), gas: avg(j, 'gasJIT') || 0 };
   const avgA = { exec: avg(a, 'exec'), pend: avg(a, 'pend'), fail: avg(a, 'fail'), gas: avg(a, 'gasAOT') || 0 };
 
-  const ctx = modal.querySelector('#compareChart').getContext('2d');
+  const ctx = popup.querySelector('#compareChart').getContext('2d');
   compareChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -223,15 +211,13 @@ compareBtn.onclick = () => {
         { label: 'AOT', backgroundColor: '#00c853', data: [avgA.exec, avgA.pend, avgA.fail, avgA.gas] }
       ]
     },
-    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
   });
 
   const pendImprove = avgJ.pend ? ((avgJ.pend - avgA.pend) / avgJ.pend * 100).toFixed(1) : 0;
   const failImprove = avgJ.fail ? ((avgJ.fail - avgA.fail) / avgJ.fail * 100).toFixed(1) : 0;
   const gasInc = avgJ.gas ? ((avgA.gas - avgJ.gas) / avgJ.gas * 100).toFixed(1) : 0;
-
-  modal.querySelector('#compareInfo').innerHTML = `
-    <p>💡 <b>AOT</b> reduces Pending by <b>${pendImprove}%</b> and Failed by <b>${failImprove}%</b> vs JIT.</p>
-    <p>⚙️ Gas AOT increases ~<b>${gasInc}%</b> for higher stability.</p>
-  `;
+  popup.querySelector('#compareInfo').innerHTML =
+    `<p>💡 AOT giảm ${pendImprove}% Pending, ${failImprove}% Failed<br>⚙️ Gas tăng ~${gasInc}% để ổn định hơn.</p>`;
+  setTimeout(() => popup && popup.remove(), 8000); // auto hide after 8s
 };
