@@ -6,7 +6,7 @@ let executed = 0, failed = 0, pending = 0;
 let jitGas = 0, aotGas = 0;
 let compareChart = null;
 
-// tạo slot
+// tạo 10 slot
 for (let i = 1; i <= 10; i++) {
   slots.innerHTML += `
     <div class="slot" id="slot-${i}">
@@ -34,7 +34,12 @@ const txChart = new Chart(txChartCtx, {
       { label: "Failed", borderColor: "#ff5252", data: [], fill: false },
     ]
   },
-  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  }
 });
 
 const gasChart = new Chart(gasChartCtx, {
@@ -46,24 +51,32 @@ const gasChart = new Chart(gasChartCtx, {
       { label: "JIT Gas", backgroundColor: "#2979ff", data: [] },
     ]
   },
-  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (v) => v.toFixed(5)
+        }
+      }
+    }
+  }
 });
 
 document.getElementById("startBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
-
   const txCount = parseInt(document.getElementById("txCount").value);
   const execData = [], pendData = [], failData = [];
   const gasAOT = [], gasJIT = [];
+  const mode = document.querySelector('input[name="mode"]:checked').value;
 
   for (let i = 1; i <= 10; i++) {
     const exec = Math.floor(Math.random() * (txCount / 10)) + 5;
     const pend = Math.floor(Math.random() * 4);
     const fail = Math.floor(Math.random() * 3);
-
-    executed += exec;
-    pending += pend;
-    failed += fail;
+    executed += exec; pending += pend; failed += fail;
 
     const slot = document.getElementById(`slot-${i}`);
     slot.querySelector(".exec").textContent = exec;
@@ -79,12 +92,15 @@ document.getElementById("startBtn").addEventListener("click", () => {
     pendData.push(pend);
     failData.push(fail);
 
-    const gasA = 0.00003 + Math.random() * 0.00006;
-    const gasJ = 0.00003 + Math.random() * 0.00006;
+    let gasA = 0, gasJ = 0;
+    if (mode === "JIT") {
+      gasJ = 0.00003 + Math.random() * 0.00004;
+    } else {
+      gasA = 0.00003 + Math.random() * 0.00004;
+    }
     gasAOT.push(gasA);
     gasJIT.push(gasJ);
-    aotGas += gasA;
-    jitGas += gasJ;
+    aotGas += gasA; jitGas += gasJ;
   }
 
   txChart.data.datasets[0].data = execData;
@@ -128,7 +144,13 @@ document.getElementById("compareBtn").addEventListener("click", () => {
         { label: "AOT", data: [executed * 0.97, failed * 0.5, pending * 0.8, aotGas], backgroundColor: "#00c853" },
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
   });
 
   document.getElementById("closeCompare").onclick = () => popup.classList.add("hidden");
