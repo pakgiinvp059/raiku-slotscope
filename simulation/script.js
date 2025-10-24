@@ -47,7 +47,15 @@ function initCharts() {
         { label: 'JIT Gas', backgroundColor: '#2979ff', data: [] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          ticks: { callback: (val) => val.toFixed(6) }
+        }
+      }
+    }
   });
 }
 initCharts();
@@ -63,8 +71,8 @@ startBtn.addEventListener('click', () => {
     const fail = Math.floor(Math.random() * 2);
     execArr.push(exec); pendArr.push(pend); failArr.push(fail);
     totalExec += exec; totalPend += pend; totalFail += fail;
-    gasAOT.push(mode === 'AOT' ? +(Math.random() * 0.00005).toFixed(5) : 0);
-    gasJIT.push(mode === 'JIT' ? +(Math.random() * 0.00005).toFixed(5) : 0);
+    gasAOT.push(mode === 'AOT' ? +(Math.random() * 0.00005).toFixed(6) : 0);
+    gasJIT.push(mode === 'JIT' ? +(Math.random() * 0.00005).toFixed(6) : 0);
     const slot = document.getElementById(`slot-${i + 1}`);
     slot.querySelector('.exec').textContent = exec;
     slot.querySelector('.pend').textContent = pend;
@@ -83,11 +91,11 @@ startBtn.addEventListener('click', () => {
   document.getElementById("executedVal").innerText = totalExec;
   document.getElementById("failedVal").innerText = totalFail;
   document.getElementById("pendingVal").innerText = totalPend;
-  const aotSum = gasAOT.reduce((a, b) => a + b, 0).toFixed(5);
-  const jitSum = gasJIT.reduce((a, b) => a + b, 0).toFixed(5);
+  const aotSum = gasAOT.reduce((a, b) => a + b, 0).toFixed(6);
+  const jitSum = gasJIT.reduce((a, b) => a + b, 0).toFixed(6);
   document.getElementById("jitGasVal").innerText = jitSum;
   document.getElementById("aotGasVal").innerText = aotSum;
-  document.getElementById("totalGasVal").innerText = (+aotSum + +jitSum).toFixed(5);
+  document.getElementById("totalGasVal").innerText = (+aotSum + +jitSum).toFixed(6);
 });
 
 resetBtn.addEventListener('click', () => location.reload());
