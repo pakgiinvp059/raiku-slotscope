@@ -1,4 +1,4 @@
-// === script.js — fixed cumulative TX + isolated gas update ===
+// script.js — persistent cumulative simulation with realistic pending + isolated gas
 
 const slotsContainer = document.getElementById('slots');
 const startBtn = document.getElementById('startBtn');
@@ -9,13 +9,12 @@ const scenarioSelect = document.getElementById('scenario');
 
 let txChart, gasChart, compareChart;
 
-// Totals
+// cumulative totals (persist until reset)
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
-let runCount = 0;
 let modeData = { JIT: [], AOT: [] };
 
-// --- Slots ---
+// create 10 slot elements
 for (let i = 1; i <= 10; i++) {
   const s = document.createElement('div');
   s.className = 'slot';
@@ -33,7 +32,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(s);
 }
 
-// --- Charts ---
+// init charts (datasets start at zero)
 function initCharts() {
   const txCtx = document.getElementById('txChart').getContext('2d');
   txChart = new Chart(txCtx, {
@@ -42,16 +41,11 @@ function initCharts() {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
         { label: 'Executed', backgroundColor: '#22c55e', data: Array(10).fill(0) },
-        { label: 'Pending', backgroundColor: '#facc15', data: Array(10).fill(0) },
-        { label: 'Failed', backgroundColor: '#ef4444', data: Array(10).fill(0) }
+        { label: 'Pending',  backgroundColor: '#facc15', data: Array(10).fill(0) },
+        { label: 'Failed',   backgroundColor: '#ef4444', data: Array(10).fill(0) }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' } },
-      scales: { y: { beginAtZero: true } }
-    }
+    options: { responsive: true, maintainAspectRatio: false, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true } } }
   });
 
   const gasCtx = document.getElementById('gasChart').getContext('2d');
@@ -67,146 +61,217 @@ function initCharts() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: {
-          ticks: { callback: (val) => val.toFixed(6) }
-        }
-      }
+      scales: { y: { ticks: { callback: v => Number(v).toFixed(6) } } },
+      plugins: { legend: { position: 'top' } }
     }
   });
 }
 initCharts();
 
-// --- Utilities ---
-function formatGas(n) { return Number(n).toFixed(6); }
-function randomGas() { return +(0.00003 + Math.random() * 0.00003).toFixed(6); }
+// utilities
+function formatGas(n){ return Number(n).toFixed(6); }
+function rndGas(){ return +(0.00003 + Math.random()*0.00003).toFixed(6); } // 0.00003..0.00006
+function partition(total){
+  const per = Math.floor(total / 10);
+  const rem = total % 10;
+  return Array.from({length:10}, (_,i) => per + (i < rem ? 1 : 0));
+}
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
 
-function getScenarioRates(level) {
-  if (level === 'HighFee') return { exec: 0.85, pend: 0.10, fail: 0.05 };
-  if (level === 'Congested') return { exec: 0.70, pend: 0.22, fail: 0.08 };
-  return { exec: 0.92, pend: 0.06, fail: 0.02 };
+function scenarioRates(s){
+  if (s === 'HighFee') return { exec:0.85, pend:0.10, fail:0.05 };
+  if (s === 'Congested') return { exec:0.70, pend:0.22, fail:0.08 };
+  return { exec:0.92, pend:0.06, fail:0.02 };
 }
 
-function updateTotals() {
-  document.getElementById('executedVal').textContent = totalExec;
-  document.getElementById('failedVal').textContent = totalFail;
-  document.getElementById('pendingVal').textContent = totalPend;
-  document.getElementById('jitGasVal').textContent = formatGas(totalGasJIT);
-  document.getElementById('aotGasVal').textContent = formatGas(totalGasAOT);
-  document.getElementById('totalGasVal').textContent = formatGas(totalGasAOT + totalGasJIT);
+// update totals display
+function updateTotalsDisplay(){
+  document.getElementById('executedVal').innerText = totalExec;
+  document.getElementById('failedVal').innerText = totalFail;
+  document.getElementById('pendingVal').innerText = totalPend;
+  document.getElementById('jitGasVal').innerText = formatGas(totalGasJIT);
+  document.getElementById('aotGasVal').innerText = formatGas(totalGasAOT);
+  document.getElementById('totalGasVal').innerText = formatGas(totalGasAOT + totalGasJIT);
 }
 
-// --- Simulation ---
-async function runSimulation(mode, totalTX, scenario) {
-  const perSlot = Math.floor(totalTX / 10);
-  const remainder = totalTX % 10;
-  const baseRates = getScenarioRates(scenario);
+// main: run simulation (with pending immediate + conversions over time)
+function runSimulation(mode, totalTX, scenario) {
+  const slots = partition(totalTX);
+  const baseRates = scenarioRates(scenario);
+  const modeAdj = mode === 'AOT' ? { exec:+0.05, pend:-0.03, fail:-0.02 } : { exec:0, pend:0, fail:0 };
 
-  for (let i = 0; i < 10; i++) {
-    const base = perSlot + (i < remainder ? 1 : 0);
-    const rate = { ...baseRates };
-    if (mode === 'AOT') {
-      rate.exec += 0.05;
-      rate.pend -= 0.03;
-      rate.fail -= 0.02;
+  // per-run summary (for modeData)
+  const runSummary = { exec:0, pend:0, fail:0, gasAOT:0, gasJIT:0 };
+
+  // For each slot: compute targets and schedule conversions
+  slots.forEach((base, i) => {
+    // compute probabilities
+    let execP = baseRates.exec + (modeAdj.exec || 0);
+    let pendP = baseRates.pend + (modeAdj.pend || 0);
+    let failP = 1 - execP - pendP;
+    // normalize if necessary
+    const sumP = execP + pendP + failP;
+    execP /= sumP; pendP /= sumP; failP /= sumP;
+    // ensure pend >= fail
+    if (pendP < failP) { const d = (failP - pendP); pendP += d; execP = Math.max(0, 1 - pendP - failP); }
+
+    // compute counts
+    let execT = Math.round(base * execP);
+    let pendT = Math.round(base * pendP);
+    let failT = base - execT - pendT;
+    // guard
+    if (pendT < failT) {
+      const need = failT - pendT;
+      const mv = Math.min(need, execT);
+      pendT += mv; execT -= mv; failT = base - execT - pendT;
     }
+    let sum = execT + pendT + failT;
+    if (sum !== base) execT += (base - sum); // small adjust
 
-    const exec = Math.round(base * rate.exec);
-    const pend = Math.round(base * rate.pend);
-    const fail = base - exec - pend;
+    // Increase pending immediately (both display and global)
+    const slotEl = document.getElementById(`slot-${i+1}`);
+    const curPend = parseInt(slotEl.querySelector('.pend').textContent || '0', 10);
+    slotEl.querySelector('.pend').textContent = curPend + pendT;
+    // Update chart pending cumulative
+    txChart.data.datasets[1].data[i] += pendT;
+    totalPend += pendT;
+    runSummary.pend += pendT;
 
-    // Simulate delay for pending → executed/failed
-    const slot = document.getElementById(`slot-${i + 1}`);
-    slot.querySelector('.pend').textContent = pend;
-    slot.querySelector('.exec').textContent = 0;
-    slot.querySelector('.fail').textContent = 0;
+    // Prepare conversions list: execT times 'E', failT times 'F'
+    const conversions = [];
+    for (let k=0;k<execT;k++) conversions.push('E');
+    for (let k=0;k<failT;k++) conversions.push('F');
+    shuffle(conversions);
 
-    await new Promise(r => setTimeout(r, 250));
+    // schedule conversions with small random delays to look realistic
+    const slotStart = i * 120; // stagger slot starts
+    conversions.forEach((outcome, idx) => {
+      const delay = slotStart + idx * (25 + Math.random()*40);
+      setTimeout(() => {
+        // decrement displayed pending
+        const el = document.getElementById(`slot-${i+1}`);
+        const pendNow = Math.max(0, parseInt(el.querySelector('.pend').textContent || '0',10) - 1);
+        el.querySelector('.pend').textContent = pendNow;
 
-    // Live animation (random delay per slot)
-    for (let j = 0; j < exec + fail; j++) {
-      await new Promise(r => setTimeout(r, 20 + Math.random() * 30));
-      if (j < exec) {
-        slot.querySelector('.exec').textContent = parseInt(slot.querySelector('.exec').textContent) + 1;
-      } else {
-        slot.querySelector('.fail').textContent = parseInt(slot.querySelector('.fail').textContent) + 1;
-      }
-      slot.querySelector('.pend').textContent = Math.max(0, pend - j - 1);
-    }
+        if (outcome === 'E') {
+          // executed: increment display and totals; add gas for mode
+          const execNow = parseInt(el.querySelector('.exec').textContent || '0',10) + 1;
+          el.querySelector('.exec').textContent = execNow;
+          totalExec += 1; runSummary.exec += 1;
+          const g = rndGas();
+          if (mode === 'AOT') { totalGasAOT += g; runSummary.gasAOT += g; gasChart.data.datasets[0].data[i] += g; }
+          else { totalGasJIT += g; runSummary.gasJIT += g; gasChart.data.datasets[1].data[i] += g; }
+          // update charts (add 1 executed, remove 1 pending)
+          txChart.data.datasets[0].data[i] += 1;
+          txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
+        } else {
+          // failed
+          const failNow = parseInt(el.querySelector('.fail').textContent || '0',10) + 1;
+          el.querySelector('.fail').textContent = failNow;
+          totalFail += 1; runSummary.fail += 1;
+          txChart.data.datasets[2].data[i] += 1;
+          txChart.data.datasets[1].data[i] = Math.max(0, txChart.data.datasets[1].data[i] - 1);
+        }
 
-    // Cộng dồn toàn cục
-    totalExec += exec;
-    totalPend += pend;
-    totalFail += fail;
+        // after each conversion update charts and totals display
+        txChart.update();
+        gasChart.update();
+        updateTotalsDisplay();
+      }, delay);
+    });
+  });
 
-    // Chỉ cộng gas cho mode đang chạy
-    const gasUsed = Array.from({ length: base }, randomGas).reduce((a, b) => a + b, 0);
-    if (mode === 'AOT') totalGasAOT += gasUsed;
-    else totalGasJIT += gasUsed;
+  // save run summary (note: runSummary.exec/pending/fail are per-run counts, gas too)
+  modeData[mode].push({
+    exec: runSummary.exec,
+    pend: runSummary.pend,
+    fail: runSummary.fail,
+    gasAOT: +runSummary.gasAOT.toFixed(6),
+    gasJIT: +runSummary.gasJIT.toFixed(6)
+  });
 
-    // Update biểu đồ: cộng dồn (+=)
-    txChart.data.datasets[0].data[i] += exec;
-    txChart.data.datasets[1].data[i] += pend;
-    txChart.data.datasets[2].data[i] += fail;
-
-    if (mode === 'AOT') gasChart.data.datasets[0].data[i] += gasUsed;
-    if (mode === 'JIT') gasChart.data.datasets[1].data[i] += gasUsed;
-
-    txChart.update();
-    gasChart.update();
-    updateTotals();
-  }
-
-  modeData[mode].push({ exec: totalExec, pend: totalPend, fail: totalFail, gas: mode === 'AOT' ? totalGasAOT : totalGasJIT });
+  // update charts and totals (pending already added)
+  txChart.update();
+  gasChart.update();
+  updateTotalsDisplay();
 }
 
-// --- Handlers ---
+// handlers
 startBtn.addEventListener('click', () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
-  const totalTX = parseInt(txCountInput.value) || 100;
+  const totalTX = Math.max(1, parseInt(txCountInput.value) || 100);
   runSimulation(mode, totalTX, scenario);
 });
 
 resetBtn.addEventListener('click', () => {
+  // reset totals & per-slot displays & charts & compare
   totalExec = totalPend = totalFail = 0;
   totalGasAOT = totalGasJIT = 0;
-  runCount = 0;
   modeData = { JIT: [], AOT: [] };
 
-  for (let i = 1; i <= 10; i++) {
-    txChart.data.datasets.forEach(ds => ds.data[i - 1] = 0);
-    gasChart.data.datasets.forEach(ds => ds.data[i - 1] = 0);
-    document.getElementById(`slot-${i}`).querySelectorAll('.exec,.pend,.fail').forEach(e => e.textContent = 0);
+  for (let i=1;i<=10;i++){
+    const s = document.getElementById(`slot-${i}`);
+    s.querySelector('.exec').textContent = 0;
+    s.querySelector('.pend').textContent = 0;
+    s.querySelector('.fail').textContent = 0;
+    txChart.data.datasets.forEach(ds => ds.data[i-1] = 0);
+    gasChart.data.datasets.forEach(ds => ds.data[i-1] = 0);
   }
-
   txChart.update();
   gasChart.update();
-  updateTotals();
+  updateTotalsDisplay();
+
+  // remove compare chart/info
+  const old = document.getElementById('compareChart');
+  if (old) old.remove();
+  const info = document.querySelector('.compare-info');
+  if (info) info.remove();
+  if (compareChart){ try{ compareChart.destroy(); }catch(e){} compareChart=null; }
 });
 
+// compare
 compareBtn.addEventListener('click', () => {
-  if (compareChart) compareChart.destroy();
+  // remove old compare canvas/info
+  const old = document.getElementById('compareChart');
+  if (old) old.remove();
+  const oldInfo = document.querySelector('.compare-info');
+  if (oldInfo) oldInfo.remove();
+  if (compareChart) try{ compareChart.destroy(); }catch(e){}
 
-  const ctx = document.createElement('canvas');
-  ctx.id = 'compareChart';
-  document.querySelector('.stats').after(ctx);
-
-  const avg = (arr, key) => arr.length ? arr.reduce((a, b) => a + b[key], 0) / arr.length : 0;
+  // averages across recorded runs for each mode
+  const avg = (arr, key) => arr.length ? arr.reduce((a,b)=>a+b[key],0)/arr.length : 0;
   const j = modeData.JIT, a = modeData.AOT;
+  const avgJ = { exec: avg(j,'exec'), pend: avg(j,'pend'), fail: avg(j,'fail'), gas: avg(j,'gasJIT') || avg(j,'gas') || 0 };
+  const avgA = { exec: avg(a,'exec'), pend: avg(a,'pend'), fail: avg(a,'fail'), gas: avg(a,'gasAOT') || avg(a,'gas') || 0 };
 
-  const avgJ = { exec: avg(j, 'exec'), pend: avg(j, 'pend'), fail: avg(j, 'fail'), gas: avg(j, 'gas') };
-  const avgA = { exec: avg(a, 'exec'), pend: avg(a, 'pend'), fail: avg(a, 'fail'), gas: avg(a, 'gas') };
+  // canvas
+  const c = document.createElement('canvas');
+  c.id = 'compareChart';
+  document.querySelector('.stats').after(c);
 
-  compareChart = new Chart(ctx, {
+  compareChart = new Chart(c.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: ['Executed', 'Pending', 'Failed', 'Gas'],
+      labels: ['Executed','Pending','Failed','Gas (SOL)'],
       datasets: [
-        { label: 'JIT', backgroundColor: '#2979ff', data: [avgJ.exec, avgJ.pend, avgJ.fail, avgJ.gas] },
-        { label: 'AOT', backgroundColor: '#00c853', data: [avgA.exec, avgA.pend, avgA.fail, avgA.gas] }
+        { label: 'JIT', backgroundColor:'#2979ff', data: [avgJ.exec, avgJ.pend, avgJ.fail, avgJ.gas] },
+        { label: 'AOT', backgroundColor:'#00c853', data: [avgA.exec, avgA.pend, avgA.fail, avgA.gas] }
       ]
     },
-    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } } }
   });
+
+  // summary
+  const pendImprove = avgJ.pend ? ((avgJ.pend - avgA.pend)/avgJ.pend*100).toFixed(1) : '0.0';
+  const failImprove = avgJ.fail ? ((avgJ.fail - avgA.fail)/avgJ.fail*100).toFixed(1) : '0.0';
+  const gasIncrease = avgJ.gas ? ((avgA.gas - avgJ.gas)/avgJ.gas*100).toFixed(1) : '0.0';
+
+  const info = document.createElement('div');
+  info.className = 'compare-info';
+  info.innerHTML = `
+    <p>💡 <strong>AOT</strong> reduces <strong>${pendImprove}%</strong> Pending and <strong>${failImprove}%</strong> Failed vs JIT (avg per-run).</p>
+    <p>⚙️ Gas AOT increases ~ <strong>${gasIncrease}%</strong> vs JIT to achieve higher stability.</p>
+  `;
+  document.body.appendChild(info);
 });
