@@ -21,7 +21,7 @@ header h1 {
 header p {
   font-size: 16px;
   margin: 4px 0 0 0;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 /* Controls */
@@ -42,6 +42,7 @@ header p {
   gap: 10px;
   width: 85%;
   padding: 0 7.5%;
+  margin-top: 10px;
 }
 
 .slot {
@@ -130,3 +131,13 @@ header p {
   font-size: 13px;
 }
 .stat span { font-weight: bold; color: #007aff; }
+
+/* compare info */
+.compare-info {
+  width: 85%;
+  margin: 12px auto;
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
