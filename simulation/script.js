@@ -34,12 +34,16 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { borderColor: '#22c55e', data: [], fill: false, tension: 0.3 },
-        { borderColor: '#facc15', data: [], fill: false, tension: 0.3 },
-        { borderColor: '#ef4444', data: [], fill: false, tension: 0.3 }
+        { borderColor: '#22c55e', data: [], fill: false, tension: 0.3 }, // Executed
+        { borderColor: '#facc15', data: [], fill: false, tension: 0.3 }, // Pending
+        { borderColor: '#ef4444', data: [], fill: false, tension: 0.3 }  // Failed
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    }
   });
 
   const gasCtx = document.getElementById('gasChart').getContext('2d');
@@ -48,16 +52,14 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
       datasets: [
-        { label: 'AOT Gas', backgroundColor: '#00c853', data: [] },
-        { label: 'JIT Gas', backgroundColor: '#2979ff', data: [] }
+        { label: 'AOT Gas', backgroundColor: '#00c853', data: Array(10).fill(0) },
+        { label: 'JIT Gas', backgroundColor: '#2979ff', data: Array(10).fill(0) }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { ticks: { callback: (val) => val.toFixed(6) } }
-      }
+      scales: { y: { ticks: { callback: (val) => val.toFixed(6) } } }
     }
   });
 }
@@ -70,7 +72,7 @@ function updateStats(execArr, pendArr, failArr, gasAOT, gasJIT, mode) {
   const gasAOTSum = gasAOT.reduce((a, b) => a + b, 0);
   const gasJITSum = gasJIT.reduce((a, b) => a + b, 0);
 
-  // Cộng dồn
+  // Cộng dồn chính xác
   totalExec += execSum;
   totalPend += pendSum;
   totalFail += failSum;
@@ -78,16 +80,20 @@ function updateStats(execArr, pendArr, failArr, gasAOT, gasJIT, mode) {
   totalGasJIT += gasJITSum;
   runCount++;
 
-  // Cập nhật chart
+  // Cập nhật biểu đồ TX
   txChart.data.datasets[0].data = execArr;
   txChart.data.datasets[1].data = pendArr;
   txChart.data.datasets[2].data = failArr;
   txChart.update();
 
-  gasChart.data.datasets[0].data = gasAOT;
-  gasChart.data.datasets[1].data = gasJIT;
+  // Giữ dữ liệu gas cả 2 mode
+  for (let i = 0; i < 10; i++) {
+    if (mode === 'AOT') gasChart.data.datasets[0].data[i] = gasAOT[i];
+    if (mode === 'JIT') gasChart.data.datasets[1].data[i] = gasJIT[i];
+  }
   gasChart.update();
 
+  // Cập nhật hiển thị
   document.getElementById("executedVal").innerText = totalExec;
   document.getElementById("failedVal").innerText = totalFail;
   document.getElementById("pendingVal").innerText = totalPend;
@@ -103,20 +109,21 @@ function updateStats(execArr, pendArr, failArr, gasAOT, gasJIT, mode) {
 
 startBtn.addEventListener('click', () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
+  const totalTX = parseInt(txCountInput.value) || 100;
+  const perSlot = Math.floor(totalTX / 10);
+  const remainder = totalTX % 10;
   const execArr = [], pendArr = [], failArr = [], gasAOT = [], gasJIT = [];
 
   for (let i = 0; i < 10; i++) {
-    const exec = Math.floor(Math.random() * 15) + 5;
-    const pend = Math.floor(Math.random() * 3);
-    const fail = Math.floor(Math.random() * 2);
-
+    const base = perSlot + (i < remainder ? 1 : 0);
+    const exec = Math.floor(base * 0.9);
+    const pend = Math.floor(base * 0.07);
+    const fail = base - exec - pend;
     execArr.push(exec);
     pendArr.push(pend);
     failArr.push(fail);
-
-    gasAOT.push(mode === 'AOT' ? +(Math.random() * 0.00005).toFixed(6) : 0);
-    gasJIT.push(mode === 'JIT' ? +(Math.random() * 0.00005).toFixed(6) : 0);
-
+    gasAOT.push(mode === 'AOT' ? +(Math.random() * 0.00005).toFixed(6) : gasChart.data.datasets[0].data[i]);
+    gasJIT.push(mode === 'JIT' ? +(Math.random() * 0.00005).toFixed(6) : gasChart.data.datasets[1].data[i]);
     const slot = document.getElementById(`slot-${i + 1}`);
     slot.querySelector('.exec').textContent = exec;
     slot.querySelector('.pend').textContent = pend;
@@ -138,12 +145,11 @@ resetBtn.addEventListener('click', () => {
   document.getElementById("aotGasVal").innerText = "0.00000";
   document.getElementById("totalGasVal").innerText = "0.00000";
   txChart.data.datasets.forEach(ds => ds.data = []);
-  gasChart.data.datasets.forEach(ds => ds.data = []);
+  gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
   txChart.update(); gasChart.update();
   if (compareChart) compareChart.destroy();
 });
 
-// ====== So sánh biểu đồ AOT vs JIT ======
 compareBtn.addEventListener('click', () => {
   const avg = (arr, key) => arr.length ? arr.reduce((a,b)=>a+b[key],0)/arr.length : 0;
   const avgJIT = {
@@ -155,11 +161,10 @@ compareBtn.addEventListener('click', () => {
     fail: avg(modeData.AOT,'fail'), gas: avg(modeData.AOT,'gasAOT')
   };
 
+  if (compareChart) compareChart.destroy();
   const ctx = document.createElement('canvas');
   ctx.id = 'compareChart';
   document.querySelector('.stats').after(ctx);
-
-  if (compareChart) compareChart.destroy();
 
   compareChart = new Chart(ctx, {
     type: 'bar',
@@ -173,10 +178,9 @@ compareBtn.addEventListener('click', () => {
     options: { responsive: true, plugins: { legend: { position: 'top' } } }
   });
 
-  // Hiệu suất
-  const pendImprove = avgJIT.pend > 0 ? ((avgJIT.pend - avgAOT.pend) / avgJIT.pend * 100).toFixed(1) : 0;
-  const failImprove = avgJIT.fail > 0 ? ((avgJIT.fail - avgAOT.fail) / avgJIT.fail * 100).toFixed(1) : 0;
-  const gasIncrease = avgJIT.gas > 0 ? ((avgAOT.gas - avgJIT.gas) / avgJIT.gas * 100).toFixed(1) : 0;
+  const pendImprove = avgJIT.pend ? ((avgJIT.pend - avgAOT.pend) / avgJIT.pend * 100).toFixed(1) : 0;
+  const failImprove = avgJIT.fail ? ((avgJIT.fail - avgAOT.fail) / avgJIT.fail * 100).toFixed(1) : 0;
+  const gasIncrease = avgJIT.gas ? ((avgAOT.gas - avgJIT.gas) / avgJIT.gas * 100).toFixed(1) : 0;
 
   const info = document.createElement('div');
   info.className = 'compare-info';
