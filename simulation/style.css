@@ -74,18 +74,19 @@ button:hover { background: #007acc; }
   box-shadow: 0 0 6px #ccc;
 }
 
-.blueprint h2 {
-  margin-left: 10px;
-  margin-bottom: 10px;
+.legend-dots {
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #444;
 }
 
-.steps {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+.legend-dots .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 0 4px;
 }
 
 .chart-row {
@@ -129,7 +130,7 @@ button:hover { background: #007acc; }
   font-size: 18px;
 }
 
-/* Popup */
+/* Popup fix */
 .compare-popup {
   position: fixed;
   top: 0; left: 0;
@@ -139,14 +140,22 @@ button:hover { background: #007acc; }
   justify-content: center;
   align-items: center;
   z-index: 999;
+  backdrop-filter: blur(3px);
 }
-.hidden { display: none; }
 
 .popup-content {
   background: white;
   border-radius: 10px;
   padding: 20px;
-  width: 500px;
+  width: 480px;
   text-align: center;
   box-shadow: 0 0 10px #0003;
 }
+
+.popup-content canvas {
+  width: 100% !important;
+  max-width: 450px;
+  height: 300px !important;
+}
+
+.hidden { display: none; }
