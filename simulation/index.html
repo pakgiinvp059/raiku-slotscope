@@ -25,8 +25,6 @@
       </select>
     </label>
     <label>TX Count: <input type="number" id="txCount" value="100" /></label>
-    <label><input type="checkbox" id="autoRun" /> Auto-run</label>
-    <button id="exportBtn">📤 Export</button>
     <button id="compareBtn">📊 So sánh JIT & AOT</button>
     <button id="resetBtn">🔄 Reset</button>
   </div>
@@ -35,6 +33,7 @@
 
   <section class="blueprint">
     <h2>🍀 Deterministic Execution Blueprint</h2>
+
     <div class="steps">
       <div class="step"><span>👤</span> User<br />Submit TX</div>
       <div class="arrow">→</div>
@@ -47,9 +46,14 @@
       <div class="step"><span>✅</span> TX Confirmed<br />Finality</div>
     </div>
 
+    <!-- 2 biểu đồ trên cùng hàng -->
     <div class="chart-row">
-      <div class="chart tx-chart"><canvas id="txChart"></canvas></div>
-      <div class="chart gas-chart"><canvas id="gasChart"></canvas></div>
+      <div class="chart tx-chart">
+        <canvas id="txChart"></canvas>
+      </div>
+      <div class="chart gas-chart">
+        <canvas id="gasChart"></canvas>
+      </div>
     </div>
   </section>
 
@@ -60,15 +64,6 @@
     <div class="stat" id="jitGas">JIT Gas (SOL)<br><span>0.00000</span></div>
     <div class="stat" id="aotGas">AOT Gas (SOL)<br><span>0.00000</span></div>
     <div class="stat" id="totalGas">Total Gas (SOL)<br><span>0.00000</span></div>
-  </div>
-
-  <!-- Popup Compare -->
-  <div id="comparePopup" class="compare-popup hidden">
-    <div class="popup-content">
-      <h3>📊 So sánh hiệu suất JIT vs AOT</h3>
-      <canvas id="compareChart"></canvas>
-      <button id="closeCompare">Đóng</button>
-    </div>
   </div>
 
   <script src="script.js"></script>
