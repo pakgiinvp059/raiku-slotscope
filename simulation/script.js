@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Realistic JIT vs AOT Simulation ===
+// === Raiku SlotScope — Fixed Pending + Real Comparison ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -10,7 +10,9 @@ const scenarioSelect = document.getElementById("scenario");
 let txChart, gasChart;
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
-let modeData = { JIT: [], AOT: [] };
+let totalRun = 0;
+let jitData = { exec: 0, pend: 0, fail: 0, gas: 0 };
+let aotData = { exec: 0, pend: 0, fail: 0, gas: 0 };
 
 // === Create 10 Slots ===
 for (let i = 1; i <= 10; i++) {
@@ -70,7 +72,6 @@ function getRates(scenario, mode) {
     Congested: { exec: 0.82, pend: 0.12, fail: 0.06 },
   }[scenario];
   
-  // AOT giảm lỗi nhẹ, pending thấp hơn
   if (mode === "AOT") {
     return {
       exec: base.exec + 0.03,
@@ -96,35 +97,34 @@ function runSimulation(mode, scenario, totalTX) {
   const { exec, pend, fail } = getRates(scenario, mode);
   const slotTx = Array.from({ length: 10 }, () => randomBetween(8, 12));
   const scale = totalTX / slotTx.reduce((a, b) => a + b, 0);
-  let totalRun = 0;
+  totalRun = totalTX;
 
   slotTx.forEach((base, i) => {
     const slot = document.getElementById(`slot-${i + 1}`);
     const txCount = Math.round(base * scale);
-    totalRun += txCount;
-
     const execCount = Math.round(txCount * exec);
     const pendCount = Math.round(txCount * pend);
     const failCount = txCount - execCount - pendCount;
-    let runningPend = pendCount;
 
     slot.querySelector(".exec").textContent = 0;
-    slot.querySelector(".pend").textContent = runningPend;
+    slot.querySelector(".pend").textContent = pendCount;
     slot.querySelector(".fail").textContent = 0;
 
-    txChart.data.datasets[1].data[i] = runningPend;
-    totalPend += runningPend;
-
-    const pendDecay = setInterval(() => {
-      if (runningPend > 0) {
-        runningPend--;
-        slot.querySelector(".pend").textContent = runningPend;
-        txChart.data.datasets[1].data[i] = runningPend;
-        txChart.update("none");
-      } else clearInterval(pendDecay);
-    }, randomBetween(400, 700));
+    txChart.data.datasets[1].data[i] = pendCount;
+    totalPend += pendCount;
 
     const sequence = [...Array(execCount).fill("E"), ...Array(failCount).fill("F")].sort(() => Math.random() - 0.5);
+    let pendingLeft = pendCount;
+
+    // simulate pending decay
+    const pendInterval = setInterval(() => {
+      if (pendingLeft > 0) {
+        pendingLeft--;
+        slot.querySelector(".pend").textContent = pendingLeft;
+        txChart.data.datasets[1].data[i] = pendingLeft;
+        txChart.update("none");
+      } else clearInterval(pendInterval);
+    }, randomBetween(300, 700));
 
     sequence.forEach((s, idx) => {
       setTimeout(() => {
@@ -134,27 +134,33 @@ function runSimulation(mode, scenario, totalTX) {
           txChart.data.datasets[0].data[i] = e;
           totalExec++;
           const gas = mode === "AOT" ? randomGas(0.00005, 0.00008) : randomGas(0.00002, 0.00005);
-          if (mode === "AOT") { gasChart.data.datasets[0].data[i] += gas; totalGasAOT += gas; }
-          else { gasChart.data.datasets[1].data[i] += gas; totalGasJIT += gas; }
+          if (mode === "AOT") { gasChart.data.datasets[0].data[i] += gas; totalGasAOT += gas; aotData.gas += gas; }
+          else { gasChart.data.datasets[1].data[i] += gas; totalGasJIT += gas; jitData.gas += gas; }
         } else {
           const f = +slot.querySelector(".fail").textContent + 1;
           slot.querySelector(".fail").textContent = f;
           txChart.data.datasets[2].data[i] = f;
           totalFail++;
         }
+
         txChart.update("none");
         gasChart.update("none");
-        updateStats(totalRun);
-      }, idx * randomBetween(90, 150));
+        updateStats();
+
+        // Cập nhật dữ liệu lưu theo mode
+        if (mode === "JIT") { jitData.exec = totalExec; jitData.fail = totalFail; jitData.pend = totalPend; }
+        else { aotData.exec = totalExec; aotData.fail = totalFail; aotData.pend = totalPend; }
+
+      }, idx * randomBetween(100, 160));
     });
   });
 }
 
-function updateStats(totalRun) {
+function updateStats() {
   document.getElementById("executedVal").textContent = totalExec;
   document.getElementById("failedVal").textContent = totalFail;
   document.getElementById("pendingVal").textContent = totalPend;
-  document.getElementById("totalRunVal").textContent = totalRun;
+  document.getElementById("totalRunVal").textContent = totalExec + totalPend + totalFail;
   document.getElementById("jitGasVal").textContent = totalGasJIT.toFixed(6);
   document.getElementById("aotGasVal").textContent = totalGasAOT.toFixed(6);
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
@@ -162,19 +168,18 @@ function updateStats(totalRun) {
 
 // === Compare JIT & AOT Popup ===
 compareBtn.onclick = () => {
-  const total = totalExec + totalFail + totalPend;
-  if (!total) return;
+  if (!jitData.exec && !aotData.exec) return;
 
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
-    <div class="popup-inner">
+    <div class="popup-inner" style="width: 480px; max-width: 95%;">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p style="margin-top:10px;font-size:13px;color:#333;">
-        AOT ổn định hơn trong môi trường tắc nghẽn, đổi lại gas cao hơn một chút.
-      </p>
-      <button class="closePopup">Đóng</button>
+      <div class="compare-text">
+        <p>AOT ổn định hơn trong môi trường tắc nghẽn, đổi lại gas cao hơn một chút.</p>
+      </div>
+      <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
 
@@ -184,8 +189,8 @@ compareBtn.onclick = () => {
     data: {
       labels: ["Executed", "Pending", "Failed", "Gas (SOL)"],
       datasets: [
-        { label: "JIT", backgroundColor: "#2979ff", data: [totalExec * 0.9, totalPend * 1.2, totalFail * 1.3, totalGasJIT] },
-        { label: "AOT", backgroundColor: "#00c853", data: [totalExec, totalPend * 0.7, totalFail * 0.6, totalGasAOT * 1.1] }
+        { label: "JIT", backgroundColor: "#2979ff", data: [jitData.exec, jitData.pend, jitData.fail, jitData.gas] },
+        { label: "AOT", backgroundColor: "#00c853", data: [aotData.exec, aotData.pend, aotData.fail, aotData.gas] }
       ]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
