@@ -1,12 +1,11 @@
 const slots = document.getElementById("slots");
 const txChartCtx = document.getElementById("txChart").getContext("2d");
 const gasChartCtx = document.getElementById("gasChart").getContext("2d");
-const compareChartCtx = document.getElementById("compareChart").getContext("2d");
 
 let executed = 0, failed = 0, pending = 0;
 let jitGas = 0, aotGas = 0;
 
-// tạo 10 slot
+// tạo slot
 for (let i = 1; i <= 10; i++) {
   slots.innerHTML += `
     <div class="slot" id="slot-${i}">
@@ -24,21 +23,25 @@ for (let i = 1; i <= 10; i++) {
     </div>`;
 }
 
-// TX Chart
+// TX chart
 const txChart = new Chart(txChartCtx, {
   type: "line",
   data: {
     labels: Array.from({ length: 10 }, (_, i) => `Slot ${i + 1}`),
     datasets: [
-      { label: "Executed", borderColor: "#00c853", backgroundColor: "#00c853", data: [], fill: false },
-      { label: "Pending", borderColor: "#ffb300", backgroundColor: "#ffb300", data: [], fill: false },
-      { label: "Failed", borderColor: "#ff5252", backgroundColor: "#ff5252", data: [], fill: false },
+      { label: "Executed", borderColor: "#00c853", data: [], fill: false },
+      { label: "Pending", borderColor: "#ffb300", data: [], fill: false },
+      { label: "Failed", borderColor: "#ff5252", data: [], fill: false },
     ]
   },
-  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { y: { beginAtZero: true } }
+  }
 });
 
-// GAS Chart
+// GAS chart
 const gasChart = new Chart(gasChartCtx, {
   type: "bar",
   data: {
@@ -48,9 +51,14 @@ const gasChart = new Chart(gasChartCtx, {
       { label: "JIT Gas", backgroundColor: "#2979ff", data: [] },
     ]
   },
-  options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { y: { beginAtZero: true } }
+  }
 });
 
+// start simulation
 document.getElementById("startBtn").addEventListener("click", () => {
   executed = failed = pending = jitGas = aotGas = 0;
   const txCount = parseInt(document.getElementById("txCount").value);
@@ -63,67 +71,16 @@ document.getElementById("startBtn").addEventListener("click", () => {
     const pend = Math.floor(Math.random() * 3);
     const fail = Math.floor(Math.random() * 2);
 
-    executed += exec;
-    pending += pend;
-    failed += fail;
+    executed += exec; pending += pend; failed += fail;
 
     slot.querySelector(".exec").textContent = exec;
     slot.querySelector(".pend").textContent = pend;
     slot.querySelector(".fail").textContent = fail;
 
-    // đổi màu nền slot dựa theo kết quả
-    const successRate = exec / (exec + pend + fail);
-    if (successRate > 0.8) slot.style.backgroundColor = "#e8fdf0";
-    else if (fail > pend) slot.style.backgroundColor = "#ffecec";
-    else slot.style.backgroundColor = "#fff8e1";
-
     execData.push(exec);
     pendData.push(pend);
     failData.push(fail);
 
+    // gas random
     const gasA = 0.00003 + Math.random() * 0.00006;
-    const gasJ = 0.00003 + Math.random() * 0.00006;
-    gasAOT.push(gasA);
-    gasJIT.push(gasJ);
-
-    aotGas += gasA;
-    jitGas += gasJ;
-  }
-
-  txChart.data.datasets[0].data = execData;
-  txChart.data.datasets[1].data = pendData;
-  txChart.data.datasets[2].data = failData;
-  txChart.update();
-
-  gasChart.data.datasets[0].data = gasAOT;
-  gasChart.data.datasets[1].data = gasJIT;
-  gasChart.update();
-
-  document.querySelector("#executedTx span").textContent = executed;
-  document.querySelector("#failedTx span").textContent = failed;
-  document.querySelector("#pendingTx span").textContent = pending;
-  document.querySelector("#jitGas span").textContent = jitGas.toFixed(5);
-  document.querySelector("#aotGas span").textContent = aotGas.toFixed(5);
-  document.querySelector("#totalGas span").textContent = (jitGas + aotGas).toFixed(5);
-});
-
-// popup so sánh
-const popup = document.getElementById("comparePopup");
-const closeBtn = document.getElementById("closeCompare");
-
-document.getElementById("compareBtn").addEventListener("click", () => {
-  popup.classList.remove("hidden");
-  new Chart(compareChartCtx, {
-    type: "bar",
-    data: {
-      labels: ["Executed", "Failed", "Pending", "Total Gas"],
-      datasets: [
-        { label: "JIT", data: [executed, failed, pending, jitGas], backgroundColor: "#2979ff" },
-        { label: "AOT", data: [executed * 0.98, failed * 0.6, pending * 0.8, aotGas], backgroundColor: "#00c853" },
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
-});
-
-closeBtn.addEventListener("click", () => popup.classList.add("hidden"));
+    const gasJ = 0.00003 + Math
