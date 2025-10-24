@@ -5,6 +5,7 @@ const gasChartCtx = document.getElementById("gasChart").getContext("2d");
 let executed = 0, failed = 0, pending = 0;
 let jitGas = 0, aotGas = 0;
 
+// Tạo 10 slot hiển thị
 for (let i = 1; i <= 10; i++) {
   slots.innerHTML += `
     <div class="slot" id="slot-${i}">
@@ -18,6 +19,7 @@ for (let i = 1; i <= 10; i++) {
     </div>`;
 }
 
+// Biểu đồ TX
 const txChart = new Chart(txChartCtx, {
   type: "line",
   data: {
@@ -29,6 +31,8 @@ const txChart = new Chart(txChartCtx, {
     ]
   },
   options: {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       y: { beginAtZero: true, ticks: { color: "#555" } },
       x: { ticks: { color: "#555" } }
@@ -36,6 +40,7 @@ const txChart = new Chart(txChartCtx, {
   }
 });
 
+// Biểu đồ Gas
 const gasChart = new Chart(gasChartCtx, {
   type: "bar",
   data: {
@@ -46,24 +51,21 @@ const gasChart = new Chart(gasChartCtx, {
     ]
   },
   options: {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          callback: v => v.toFixed(5)
-        }
+        ticks: { callback: v => v.toFixed(5) }
       }
     }
   }
 });
 
 document.getElementById("startBtn").addEventListener("click", () => {
-  executed = failed = pending = 0;
-  jitGas = aotGas = 0;
+  executed = failed = pending = jitGas = aotGas = 0;
 
   const txCount = parseInt(document.getElementById("txCount").value);
-  const mode = document.querySelector('input[name="mode"]:checked').value;
-  
   const execData = [], pendData = [], failData = [];
   const gasAOT = [], gasJIT = [];
 
@@ -83,7 +85,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
     pendData.push(pend);
     failData.push(fail);
 
-    // Gas nhỏ dạng 0.00003–0.00009
     const gasA = 0.00003 + Math.random() * 0.00006;
     const gasJ = 0.00003 + Math.random() * 0.00006;
     gasAOT.push(gasA);
