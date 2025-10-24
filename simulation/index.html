@@ -11,56 +11,62 @@
   <header>
     <h1>🪐 Raiku SlotScope</h1>
     <p>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</p>
+    <div class="controls">
+      <button id="startBtn">▶ Start Simulation</button>
+      <label><input type="radio" name="mode" value="JIT" checked /> JIT</label>
+      <label><input type="radio" name="mode" value="AOT" /> AOT</label>
+      <label>Scenario:
+        <select id="scenario">
+          <option value="Normal">Normal</option>
+          <option value="HighFee">High Fee</option>
+          <option value="Congested">Congested</option>
+        </select>
+      </label>
+      <label>TX Count:
+        <input type="number" id="txCount" value="100" min="10" max="1000" />
+      </label>
+      <button id="compareBtn">📊 So sánh JIT & AOT</button>
+      <button id="resetBtn">🔄 Reset</button>
+    </div>
   </header>
 
-  <div class="controls">
-    <button id="startBtn">▶ Start Simulation</button>
-    <label><input type="radio" name="mode" value="JIT" checked /> JIT</label>
-    <label><input type="radio" name="mode" value="AOT" /> AOT</label>
-    <label>Scenario:
-      <select id="scenario">
-        <option value="Normal">Normal</option>
-        <option value="HighFee">High Fee</option>
-        <option value="Congested">Congested</option>
-      </select>
-    </label>
-    <label>TX Count: <input type="number" id="txCount" value="100" /></label>
-    <button id="compareBtn">📊 So sánh JIT & AOT</button>
-    <button id="resetBtn">🔁 Reset</button>
-  </div>
+  <main>
+    <section id="slots" class="slots"></section>
 
-  <div id="slots" class="slots-container"></div>
+    <div class="blueprint">
+      <h2>🍀 Deterministic Execution Blueprint</h2>
+      <div class="blueprint-steps">
+        <div><span>👤</span> User<br />Submit TX</div>
+        <div>→</div>
+        <div><span>🧠</span> Raiku Node<br />AOT / JIT Scheduling</div>
+        <div>→</div>
+        <div><span>⏱️</span> Slot Reservation<br />Guaranteed Order</div>
+        <div>→</div>
+        <div><span>🌻</span> Solana Chain<br />Deterministic Execution</div>
+        <div>→</div>
+        <div><span>✅</span> TX Confirmed<br />Finality</div>
+      </div>
 
-  <div class="panel blueprint">
-    <h2>🍀 Deterministic Execution Blueprint</h2>
-
-    <div class="steps">
-      <div class="step">👤 User<br />Submit TX</div>
-      <div class="arrow">→</div>
-      <div class="step">🧠 Raiku Node<br />AOT / JIT Scheduling</div>
-      <div class="arrow">→</div>
-      <div class="step">⏱️ Slot Reservation<br />Guaranteed Order</div>
-      <div class="arrow">→</div>
-      <div class="step">🌞 Solana Chain<br />Deterministic Execution</div>
-      <div class="arrow">→</div>
-      <div class="step">✅ TX Confirmed<br />Finality</div>
+      <div class="charts">
+        <div class="chart-container">
+          <canvas id="txChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="gasChart"></canvas>
+        </div>
+      </div>
     </div>
 
-    <div class="chart-row">
-      <div class="chart"><canvas id="txChart"></canvas></div>
-      <div class="chart"><canvas id="gasChart"></canvas></div>
+    <div class="stats">
+      <div class="stat-box">Total TX (All)<br /><span id="totalRunVal">0</span></div>
+      <div class="stat-box">Executed TX<br /><span id="executedVal">0</span></div>
+      <div class="stat-box">Failed TX<br /><span id="failedVal">0</span></div>
+      <div class="stat-box">Pending TX<br /><span id="pendingVal">0</span></div>
+      <div class="stat-box">JIT Gas (SOL)<br /><span id="jitGasVal">0.00000</span></div>
+      <div class="stat-box">AOT Gas (SOL)<br /><span id="aotGasVal">0.00000</span></div>
+      <div class="stat-box">Total Gas (SOL)<br /><span id="totalGasVal">0.00000</span></div>
     </div>
-  </div>
-
-  <div class="stats">
-    <div class="stat">Total TX (All)<br><span id="totalRunVal">0</span></div>
-    <div class="stat">Executed TX<br><span id="executedVal">0</span></div>
-    <div class="stat">Failed TX<br><span id="failedVal">0</span></div>
-    <div class="stat">Pending TX<br><span id="pendingVal">0</span></div>
-    <div class="stat">JIT Gas (SOL)<br><span id="jitGasVal">0.00000</span></div>
-    <div class="stat">AOT Gas (SOL)<br><span id="aotGasVal">0.00000</span></div>
-    <div class="stat">Total Gas (SOL)<br><span id="totalGasVal">0.00000</span></div>
-  </div>
+  </main>
 
   <script src="script.js"></script>
 </body>
