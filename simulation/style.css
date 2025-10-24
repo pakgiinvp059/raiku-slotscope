@@ -146,10 +146,9 @@ header p {
   box-shadow: 0 4px 25px rgba(0,0,0,0.2);
   z-index: 2000;
   animation: fadeInUp 0.3s ease-out;
-  width: 320px;
-  height: 340px;
-  overflow: hidden;
-  padding: 10px 12px 14px 12px;
+  width: 560px;
+  height: 420px;
+  padding: 16px;
 }
 @keyframes fadeInUp {
   from { transform: translate(-50%, -40%); opacity: 0; }
@@ -158,27 +157,27 @@ header p {
 .popup-inner { text-align: center; }
 .popup-inner canvas {
   width: 100%;
-  height: 150px !important;
+  height: 240px !important;
 }
 .popup-inner strong {
   display: block;
   margin-bottom: 6px;
-  font-size: 14px;
+  font-size: 15px;
   color: #111;
 }
 .popup-inner p {
-  font-size: 12px;
+  font-size: 13px;
   margin: 4px 0;
   color: #333;
   line-height: 1.3;
 }
 .closePopup {
-  margin-top: 6px;
+  margin-top: 10px;
   background: #007aff;
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 4px 10px;
+  padding: 5px 14px;
   cursor: pointer;
 }
 .closePopup:hover { background: #005fcb; }
