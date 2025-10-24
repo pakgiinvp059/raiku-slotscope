@@ -19,7 +19,7 @@ for (let i = 1; i <= 10; i++) {
     </div>`;
 }
 
-// biểu đồ tx
+// biểu đồ TX
 const txChart = new Chart(txChartCtx, {
   type: "line",
   data: {
@@ -33,14 +33,11 @@ const txChart = new Chart(txChartCtx, {
   options: {
     responsive: true,
     maintainAspectRatio: false,
-    scales: {
-      y: { beginAtZero: true },
-      x: { ticks: { color: "#555" } }
-    }
+    scales: { y: { beginAtZero: true } }
   }
 });
 
-// biểu đồ gas
+// biểu đồ Gas
 const gasChart = new Chart(gasChartCtx, {
   type: "bar",
   data: {
@@ -56,9 +53,7 @@ const gasChart = new Chart(gasChartCtx, {
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          callback: v => v.toFixed(5)
-        }
+        ticks: { callback: v => v.toFixed(5) }
       }
     }
   }
@@ -80,7 +75,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
     executed += exec;
     pending += pend;
     failed += fail;
-
     slot.querySelector(".count").textContent = exec + pend + fail;
 
     execData.push(exec);
