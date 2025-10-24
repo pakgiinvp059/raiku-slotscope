@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Stable Animated Simulation ===
+// === Raiku SlotScope — Final Stable Simulation ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -125,7 +125,7 @@ function runSimulation(mode, totalTX, scenario) {
     slot.querySelector(".pend").textContent = runningPend;
     slot.querySelector(".fail").textContent = 0;
 
-    txChart.data.datasets[1].data[i] = runningPend;
+    txChart.data.datasets[1].data[i] = runningPend; // start yellow visible
     totalPend += runningPend;
     updateStats();
 
@@ -134,14 +134,18 @@ function runSimulation(mode, totalTX, scenario) {
       ...Array(failCount).fill("F")
     ].sort(() => Math.random() - 0.5);
 
+    // make pending decrease naturally
+    const pendDecay = setInterval(() => {
+      if (runningPend > 0) {
+        runningPend--;
+        slot.querySelector(".pend").textContent = runningPend;
+        txChart.data.datasets[1].data[i] = runningPend;
+        txChart.update("none");
+      } else clearInterval(pendDecay);
+    }, randomBetween(300, 600));
+
     sequence.forEach((s, idx) => {
       setTimeout(() => {
-        if (runningPend > 0) {
-          runningPend--;
-          slot.querySelector(".pend").textContent = runningPend;
-          txChart.data.datasets[1].data[i] = runningPend;
-        }
-
         if (s === "E") {
           const e = +slot.querySelector(".exec").textContent + 1;
           slot.querySelector(".exec").textContent = e;
@@ -175,15 +179,26 @@ function updateStats() {
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
 }
 
-// === COMPARE POPUP FIXED ===
+// === COMPARE POPUP (larger, with data) ===
 compareBtn.addEventListener("click", () => {
+  const total = totalExec + totalFail + totalPend;
+  const execRate = ((totalExec / total) * 100).toFixed(1);
+  const failRate = ((totalFail / total) * 100).toFixed(1);
+  const pendRate = ((totalPend / total) * 100).toFixed(1);
+  const avgGasAOT = totalGasAOT / (totalExec || 1);
+  const avgGasJIT = totalGasJIT / (totalExec || 1);
+
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
-    <div class="popup-inner">
+    <div class="popup-inner" style="width: 480px; max-width: 95%;">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p>💡 AOT giảm Pending & Failed khoảng <b>20–40%</b><br>Gas tăng nhẹ để đạt độ ổn định cao hơn.</p>
+      <div class="compare-text">
+        <p>✅ Executed: <b>${execRate}%</b> &nbsp;&nbsp; ⚠️ Pending: <b>${pendRate}%</b> &nbsp;&nbsp; ❌ Failed: <b>${failRate}%</b></p>
+        <p>💡 AOT Gas trung bình: <b>${avgGasAOT.toFixed(6)}</b> | JIT Gas trung bình: <b>${avgGasJIT.toFixed(6)}</b></p>
+        <p>📈 AOT giảm lỗi ~<b>30%</b> & Gas tăng nhẹ ~<b>10%</b> để đạt hiệu suất ổn định hơn.</p>
+      </div>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
@@ -192,7 +207,7 @@ compareBtn.addEventListener("click", () => {
   new Chart(ctx, {
     type: "bar",
     data: {
-      labels: ["Executed TX", "Pending TX", "Failed TX", "Gas (SOL)"],
+      labels: ["Executed", "Pending", "Failed", "Gas (SOL)"],
       datasets: [
         { label: "JIT", backgroundColor: "#2979ff", data: [totalExec * 0.9, totalPend * 1.2, totalFail * 1.3, totalGasJIT] },
         { label: "AOT", backgroundColor: "#00c853", data: [totalExec, totalPend * 0.7, totalFail * 0.6, totalGasAOT * 1.1] }
