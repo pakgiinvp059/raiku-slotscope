@@ -1,68 +1,133 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🪐 Raiku SlotScope — Deterministic Simulation</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <header>
-    <h1>🪐 Raiku SlotScope</h1>
-    <p>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</p>
-  </header>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f8fbff;
+  color: #222;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
 
-  <div class="controls">
-    <button id="startBtn">🚀 Start Simulation</button>
-    <label><input type="radio" name="mode" value="JIT" checked /> JIT</label>
-    <label><input type="radio" name="mode" value="AOT" /> AOT</label>
-    <label>Scenario:
-      <select id="scenario">
-        <option value="Normal">Normal</option>
-        <option value="HighFee">High Fee</option>
-        <option value="Congested">Congested</option>
-      </select>
-    </label>
-    <label>TX Count: <input type="number" id="txCount" value="100" /></label>
-    <label><input type="checkbox" id="autoRun" /> Auto-run</label>
-    <button id="exportBtn">📤 Export</button>
-    <button id="compareBtn">📊 So sánh JIT & AOT</button>
-    <button id="resetBtn">🔄 Reset</button>
-  </div>
+header {
+  background: linear-gradient(90deg, #009dff, #00c3ff);
+  color: white;
+  text-align: center;
+  padding: 15px 0;
+}
 
-  <div id="slots" class="slots-container"></div>
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  flex-wrap: wrap;
+}
 
-  <section class="blueprint">
-    <h2>🍀 Deterministic Execution Blueprint</h2>
-    <div class="steps">
-      <div class="step"><span>👤</span> User<br />Submit TX</div>
-      <div class="arrow">→</div>
-      <div class="step"><span>🧠</span> Raiku Node<br />AOT / JIT Scheduling</div>
-      <div class="arrow">→</div>
-      <div class="step"><span>⏱</span> Slot Reservation<br />Guaranteed Order</div>
-      <div class="arrow">→</div>
-      <div class="step"><span>☀️</span> Solana Chain<br />Deterministic Execution</div>
-      <div class="arrow">→</div>
-      <div class="step"><span>✅</span> TX Confirmed<br />Finality</div>
-    </div>
+button {
+  background: #009dff;
+  border: none;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+button:hover { background: #007acc; }
 
-    <!-- Biểu đồ gọn trong khung, cố định chiều cao -->
-    <div class="charts">
-      <div class="chart tx-chart"><canvas id="txChart"></canvas></div>
-      <div class="chart gas-chart"><canvas id="gasChart"></canvas></div>
-    </div>
-  </section>
+.slots-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 auto;
+  padding: 10px 0;
+}
 
-  <div class="stats">
-    <div class="stat" id="executedTx">Executed TX<br><span>0</span></div>
-    <div class="stat" id="failedTx">Failed TX<br><span>0</span></div>
-    <div class="stat" id="pendingTx">Pending TX<br><span>0</span></div>
-    <div class="stat" id="jitGas">JIT Gas (SOL)<br><span>0.00000</span></div>
-    <div class="stat" id="aotGas">AOT Gas (SOL)<br><span>0.00000</span></div>
-    <div class="stat" id="totalGas">Total Gas (SOL)<br><span>0.00000</span></div>
-  </div>
+.slot {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #ccc;
+  width: 90px;
+  padding: 10px;
+}
 
-  <script src="script.js"></script>
-</body>
-</html>
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.green { background: #00c853; }
+.yellow { background: #ffb300; }
+.red { background: #ff5252; }
+
+.blueprint {
+  width: 90%;
+  margin: 15px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 4px #ccc;
+}
+
+.blueprint h2 {
+  margin: 0 0 10px 10px;
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* Khung biểu đồ cố định */
+.charts {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 350px; /* cố định chiều cao khung */
+}
+
+.chart {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #ccc;
+  padding: 10px;
+  height: 100%;
+}
+
+.tx-chart {
+  flex: 3;
+}
+
+.gas-chart {
+  flex: 1;
+}
+
+/* Stats */
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin: 20px auto;
+  flex-wrap: wrap;
+}
+
+.stat {
+  background: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #ccc;
+}
+
+.stat span {
+  color: #007bff;
+  font-weight: bold;
+  font-size: 18px;
+}
