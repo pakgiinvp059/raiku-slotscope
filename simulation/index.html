@@ -8,7 +8,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
   <header>
     <h1>🪐 Raiku SlotScope</h1>
     <p>Deterministic Simulation — AOT vs JIT Execution (Solana-like)</p>
@@ -36,38 +35,25 @@
     <h2>🍀 Deterministic Execution Blueprint</h2>
 
     <div class="steps">
-      <div class="step">
-        👤 User<br />Submit TX
-      </div>
+      <div class="step">👤 User<br />Submit TX</div>
       <div class="arrow">→</div>
-      <div class="step">
-        🧠 Raiku Node<br />AOT / JIT Scheduling
-      </div>
+      <div class="step">🧠 Raiku Node<br />AOT / JIT Scheduling</div>
       <div class="arrow">→</div>
-      <div class="step">
-        ⏱️ Slot Reservation<br />Guaranteed Order
-      </div>
+      <div class="step">⏱️ Slot Reservation<br />Guaranteed Order</div>
       <div class="arrow">→</div>
-      <div class="step">
-        🌞 Solana Chain<br />Deterministic Execution
-      </div>
+      <div class="step">🌞 Solana Chain<br />Deterministic Execution</div>
       <div class="arrow">→</div>
-      <div class="step">
-        ✅ TX Confirmed<br />Finality
-      </div>
+      <div class="step">✅ TX Confirmed<br />Finality</div>
     </div>
 
     <div class="chart-row">
-      <div class="chart">
-        <canvas id="txChart"></canvas>
-      </div>
-      <div class="chart">
-        <canvas id="gasChart"></canvas>
-      </div>
+      <div class="chart"><canvas id="txChart"></canvas></div>
+      <div class="chart"><canvas id="gasChart"></canvas></div>
     </div>
   </div>
 
   <div class="stats">
+    <div class="stat">Total TX (All)<br><span id="totalRunVal">0</span></div>
     <div class="stat">Executed TX<br><span id="executedVal">0</span></div>
     <div class="stat">Failed TX<br><span id="failedVal">0</span></div>
     <div class="stat">Pending TX<br><span id="pendingVal">0</span></div>
