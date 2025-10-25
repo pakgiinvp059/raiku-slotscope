@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Stable Realistic Simulation ===
+// === Raiku SlotScope — Full Realistic Execution with True Comparison ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -36,15 +36,15 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", data: Array(10).fill(0), fill: true, tension: 0.3 },
-        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.1)", data: Array(10).fill(0), fill: true, tension: 0.3 },
-        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.1)", data: Array(10).fill(0), fill: true, tension: 0.3 }
+        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", data: Array(10).fill(0), fill: true, tension: 0.25 },
+        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.1)", data: Array(10).fill(0), fill: true, tension: 0.25 },
+        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.1)", data: Array(10).fill(0), fill: true, tension: 0.25 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 250 },
+      animation: { duration: 300 },
       plugins: { legend: { position: "top" } },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
     }
@@ -63,7 +63,7 @@ function initCharts() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 250 },
+      animation: { duration: 300 },
       scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(6) } } }
     }
   });
@@ -79,7 +79,6 @@ function getRates(scenario, mode) {
     HighFee: { exec: 0.88, pend: 0.09, fail: 0.03 },
     Congested: { exec: 0.82, pend: 0.12, fail: 0.06 }
   }[scenario];
-
   if (mode === "AOT") {
     return {
       exec: Math.min(base.exec + 0.03, 0.98),
@@ -117,6 +116,8 @@ function simulate(mode, scenario, totalTX) {
   const scale = totalTX / slotDist.reduce((a, b) => a + b, 0);
   const slotTX = slotDist.map(v => Math.round(v * scale));
 
+  let execSum = 0, failSum = 0, pendSum = 0, gasSum = 0;
+
   slotTX.forEach((count, i) => {
     const gate = document.getElementById(`slot-${i + 1}`);
     const execCount = Math.round(count * exec);
@@ -128,49 +129,48 @@ function simulate(mode, scenario, totalTX) {
     gate.querySelector(".pend").textContent = pendCount;
     gate.querySelector(".fail").textContent = "0";
 
-    totalPend += pendCount;
+    pendSum += pendCount;
     txChart.data.datasets[1].data[i] = pendCount;
 
-    const seq = [
-      ...Array(execCount).fill("E"),
-      ...Array(failCount).fill("F")
-    ].sort(() => Math.random() - 0.5);
+    const seq = [...Array(execCount).fill("E"), ...Array(failCount).fill("F")].sort(() => Math.random() - 0.5);
 
     seq.forEach((tx, idx) => {
-      const delay = idx * randomBetween(70, 150);
+      const delay = idx * randomBetween(70, 150) + randomBetween(100, 400);
       setTimeout(() => {
         if (tx === "E") {
           e++;
           gate.querySelector(".exec").textContent = e;
           txChart.data.datasets[0].data[i] = e;
-          totalExec++;
-
+          execSum++;
           const gas = mode === "AOT" ? randomGas(0.00005, 0.00008) : randomGas(0.00002, 0.00005);
+          gasSum += gas;
           if (mode === "AOT") { gasChart.data.datasets[0].data[i] += gas; totalGasAOT += gas; }
           else { gasChart.data.datasets[1].data[i] += gas; totalGasJIT += gas; }
         } else {
           f++;
           gate.querySelector(".fail").textContent = f;
           txChart.data.datasets[2].data[i] = f;
-          totalFail++;
+          failSum++;
         }
-
         txChart.update("none");
         gasChart.update("none");
-        updateStats();
+        updateStats(execSum, pendSum, failSum);
       }, delay);
     });
   });
 
-  // Snapshot after simulation
+  // Save snapshot
   setTimeout(() => {
-    const snap = { exec: totalExec, pend: totalPend, fail: totalFail, gas: mode === "AOT" ? totalGasAOT : totalGasJIT };
+    const snap = { exec: execSum, pend: pendSum, fail: failSum, gas: gasSum };
     snapshots[mode] = snap;
   }, 4000);
 }
 
 // === UPDATE STATS ===
-function updateStats() {
+function updateStats(execSum, pendSum, failSum) {
+  totalExec = execSum;
+  totalFail = failSum;
+  totalPend = pendSum;
   document.getElementById("executedVal").textContent = totalExec;
   document.getElementById("failedVal").textContent = totalFail;
   document.getElementById("pendingVal").textContent = totalPend;
@@ -185,13 +185,21 @@ compareBtn.addEventListener("click", () => {
   const j = snapshots.JIT || { exec: 0, pend: 0, fail: 0, gas: 0 };
   const a = snapshots.AOT || { exec: 0, pend: 0, fail: 0, gas: 0 };
 
+  const execDiff = ((a.exec - j.exec) / (j.exec || 1) * 100).toFixed(1);
+  const pendDiff = ((j.pend - a.pend) / (j.pend || 1) * 100).toFixed(1);
+  const failDiff = ((j.fail - a.fail) / (j.fail || 1) * 100).toFixed(1);
+  const gasDiff = ((a.gas - j.gas) / (j.gas || 1) * 100).toFixed(1);
+
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p>AOT xử lý ổn định hơn trong môi trường tắc nghẽn, giảm lỗi và pending đáng kể.</p>
+      <p>
+        AOT giảm <b>${pendDiff}% Pending</b> và <b>${failDiff}% Failed</b>, 
+        tăng <b>${gasDiff}% Gas</b> để đạt hiệu suất ổn định hơn.
+      </p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
@@ -206,7 +214,12 @@ compareBtn.addEventListener("click", () => {
         { label: "AOT", backgroundColor: "#00c853", data: [a.exec, a.pend, a.fail, a.gas] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "top" } },
+      scales: { y: { beginAtZero: true } }
+    }
   });
 
   popup.querySelector(".closePopup").addEventListener("click", () => popup.remove());
