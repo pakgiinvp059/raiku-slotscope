@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Full Realistic Execution with True Comparison ===
+// === Raiku SlotScope — True Stable Simulation ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -36,15 +36,15 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", data: Array(10).fill(0), fill: true, tension: 0.25 },
-        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.1)", data: Array(10).fill(0), fill: true, tension: 0.25 },
-        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.1)", data: Array(10).fill(0), fill: true, tension: 0.25 }
+        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)", data: Array(10).fill(0), fill: true, tension: 0.3 },
+        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.15)", data: Array(10).fill(0), fill: true, tension: 0.3 },
+        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.15)", data: Array(10).fill(0), fill: true, tension: 0.3 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 300 },
+      animation: { duration: 250 },
       plugins: { legend: { position: "top" } },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
     }
@@ -63,7 +63,7 @@ function initCharts() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 300 },
+      animation: { duration: 250 },
       scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(6) } } }
     }
   });
@@ -112,17 +112,17 @@ startBtn.addEventListener("click", () => {
 
 function simulate(mode, scenario, totalTX) {
   const { exec, pend, fail } = getRates(scenario, mode);
-  const slotDist = Array.from({ length: 10 }, () => randomBetween(8, 12));
-  const scale = totalTX / slotDist.reduce((a, b) => a + b, 0);
-  const slotTX = slotDist.map(v => Math.round(v * scale));
+  const perGate = Math.floor(totalTX / 10);
+  const remainder = totalTX % 10;
 
   let execSum = 0, failSum = 0, pendSum = 0, gasSum = 0;
 
-  slotTX.forEach((count, i) => {
+  for (let i = 0; i < 10; i++) {
     const gate = document.getElementById(`slot-${i + 1}`);
-    const execCount = Math.round(count * exec);
-    const pendCount = Math.max(1, Math.round(count * pend));
-    const failCount = Math.max(1, count - execCount - pendCount);
+    const txCount = perGate + (i < remainder ? 1 : 0); // Chia đều chính xác 100 TX
+    const execCount = Math.round(txCount * exec);
+    const pendCount = Math.max(1, Math.round(txCount * pend));
+    const failCount = Math.max(1, txCount - execCount - pendCount);
 
     let e = 0, f = 0;
     gate.querySelector(".exec").textContent = "0";
@@ -132,10 +132,13 @@ function simulate(mode, scenario, totalTX) {
     pendSum += pendCount;
     txChart.data.datasets[1].data[i] = pendCount;
 
-    const seq = [...Array(execCount).fill("E"), ...Array(failCount).fill("F")].sort(() => Math.random() - 0.5);
+    const sequence = [
+      ...Array(execCount).fill("E"),
+      ...Array(failCount).fill("F")
+    ].sort(() => Math.random() - 0.5);
 
-    seq.forEach((tx, idx) => {
-      const delay = idx * randomBetween(70, 150) + randomBetween(100, 400);
+    sequence.forEach((tx, idx) => {
+      const delay = idx * randomBetween(70, 150);
       setTimeout(() => {
         if (tx === "E") {
           e++;
@@ -157,9 +160,9 @@ function simulate(mode, scenario, totalTX) {
         updateStats(execSum, pendSum, failSum);
       }, delay);
     });
-  });
+  }
 
-  // Save snapshot
+  // Lưu snapshot chính xác sau khi hoàn tất
   setTimeout(() => {
     const snap = { exec: execSum, pend: pendSum, fail: failSum, gas: gasSum };
     snapshots[mode] = snap;
@@ -197,8 +200,8 @@ compareBtn.addEventListener("click", () => {
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
       <p>
-        AOT giảm <b>${pendDiff}% Pending</b> và <b>${failDiff}% Failed</b>, 
-        tăng <b>${gasDiff}% Gas</b> để đạt hiệu suất ổn định hơn.
+        AOT giảm <b>${pendDiff}% Pending</b> & <b>${failDiff}% Failed</b>,
+        tăng nhẹ <b>${gasDiff}% Gas</b> để đạt độ ổn định cao hơn.
       </p>
       <button class="closePopup">OK</button>
     </div>`;
