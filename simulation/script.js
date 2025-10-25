@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Real-Time Gate Simulation ===
+// === Raiku SlotScope — Smooth & Accurate Simulation ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -42,7 +42,7 @@ function initCharts() {
         { label: "Failed", borderColor: "#ef4444", data: Array(10).fill(0), fill: false, tension: 0.3 }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, animation: false }
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 } }
   });
 
   const gasCtx = document.getElementById("gasChart").getContext("2d");
@@ -74,7 +74,6 @@ function getRates(scenario, mode) {
     : base;
 }
 
-// === Reset ===
 resetBtn.onclick = () => location.reload();
 
 // === Main Simulation ===
@@ -87,51 +86,67 @@ startBtn.onclick = () => {
 
 function simulate(mode, scenario, totalTX) {
   const { exec, pend, fail } = getRates(scenario, mode);
-  const perGate = totalTX / 10;
+  const perGate = Math.floor(totalTX / 10);
+
+  totalExec = totalPend = totalFail = totalGasAOT = totalGasJIT = 0;
 
   for (let i = 0; i < 10; i++) {
     const gate = document.getElementById(`gate-${i + 1}`);
-    let execC = 0, failC = 0, pendC = Math.round(perGate * pend);
+    const execTarget = Math.floor(perGate * exec);
+    const pendTarget = Math.floor(perGate * pend);
+    const failTarget = Math.floor(perGate * fail);
 
+    let execC = 0, failC = 0, pendC = pendTarget;
     txChart.data.datasets[1].data[i] = pendC;
-    totalPend += pendC;
     gate.querySelector(".pend").textContent = pendC;
+    totalPend += pendC;
 
+    const allTx = [...Array(execTarget).fill("E"), ...Array(failTarget).fill("F")];
+    allTx.sort(() => Math.random() - 0.5);
+
+    let idx = 0;
     const interval = setInterval(() => {
+      if (idx >= allTx.length && pendC <= 0) return clearInterval(interval);
+
       if (pendC > 0 && Math.random() > 0.5) {
         pendC--;
         txChart.data.datasets[1].data[i] = pendC;
         gate.querySelector(".pend").textContent = pendC;
         totalPend--;
       }
-      if (Math.random() > 0.7 && execC < perGate * exec) {
-        execC++;
-        txChart.data.datasets[0].data[i] = execC;
-        gate.querySelector(".exec").textContent = execC;
-        totalExec++;
-        const gas = mode === "AOT" ? randomGas(0.00005, 0.00008) : randomGas(0.00002, 0.00005);
-        if (mode === "AOT") totalGasAOT += gas;
-        else totalGasJIT += gas;
-      } else if (Math.random() < 0.1 && failC < perGate * fail) {
-        failC++;
-        txChart.data.datasets[2].data[i] = failC;
-        gate.querySelector(".fail").textContent = failC;
-        totalFail++;
+
+      if (idx < allTx.length) {
+        const type = allTx[idx];
+        if (type === "E") {
+          execC++;
+          gate.querySelector(".exec").textContent = execC;
+          txChart.data.datasets[0].data[i] = execC;
+          totalExec++;
+          const gas = mode === "AOT" ? randomGas(0.00005, 0.00008) : randomGas(0.00002, 0.00005);
+          if (mode === "AOT") totalGasAOT += gas;
+          else totalGasJIT += gas;
+        } else {
+          failC++;
+          gate.querySelector(".fail").textContent = failC;
+          txChart.data.datasets[2].data[i] = failC;
+          totalFail++;
+        }
+        idx++;
       }
-      updateStats();
+
       txChart.update("none");
       gasChart.update("none");
-      if (execC >= perGate * exec && failC >= perGate * fail && pendC <= 0) clearInterval(interval);
-    }, randomBetween(100, 250));
+      updateStats();
+    }, randomBetween(80, 150));
   }
 }
 
-// === Stats Update ===
 function updateStats() {
+  const total = totalExec + totalPend + totalFail;
   document.getElementById("executedVal").textContent = totalExec;
   document.getElementById("failedVal").textContent = totalFail;
   document.getElementById("pendingVal").textContent = totalPend;
-  document.getElementById("totalRunVal").textContent = totalExec + totalPend + totalFail;
+  document.getElementById("totalRunVal").textContent = total;
   document.getElementById("jitGasVal").textContent = totalGasJIT.toFixed(6);
   document.getElementById("aotGasVal").textContent = totalGasAOT.toFixed(6);
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
@@ -146,7 +161,7 @@ compareBtn.onclick = () => {
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
       <div class="compare-text">
-        <p>AOT giảm Pending & Failed rõ rệt so với JIT<br>nhưng tốn thêm chút gas để đảm bảo ổn định.</p>
+        <p>AOT giảm Pending & Failed rõ rệt so với JIT<br>nhưng tăng gas nhẹ để đạt độ ổn định cao hơn.</p>
       </div>
       <button class="closePopup">OK</button>
     </div>`;
