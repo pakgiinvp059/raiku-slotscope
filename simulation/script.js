@@ -1,5 +1,5 @@
-// === Raiku SlotScope — v4.8 Stable Aggregate Logic ===
-// Correct aggregate totals, natural pending decay, and accurate JIT/AOT comparison
+// === Raiku SlotScope — v4.9 Compare Chart Enhanced ===
+// Adds value labels, corrects 3-column data sync, keeps UI identical
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -159,7 +159,6 @@ startBtn.onclick = async () => {
   gasChart.data.datasets[1].data = [...sessionGasJIT];
   txChart.update(); gasChart.update(); updateStats();
 
-  // simulate natural pending decay
   if (mode === "AOT") {
     const decay = setInterval(() => {
       let hasPending = false;
@@ -239,11 +238,25 @@ compareBtn.onclick = () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "top" } },
+      plugins: {
+        legend: { position: "top" },
+        datalabels: {
+          color: "#111",
+          anchor: "end",
+          align: "top",
+          font: { weight: "bold" },
+          formatter: val => val.toLocaleString()
+        }
+      },
       scales: {
-        y: { beginAtZero: true, title: { display: true, text: "TX Count / Avg Gas" } }
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: "TX Count / Avg Gas" }
+        }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
+
   popup.querySelector(".closePopup").onclick = () => popup.remove();
 };
