@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Cumulative Charts + Accurate Totals ===
+// === Raiku SlotScope — Deterministic Execution Simulation (Final Realistic v3.2) ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -13,15 +13,15 @@ let totalGasAOT = 0, totalGasJIT = 0;
 let cumulative = { JIT: { exec:0, pend:0, fail:0, gas:0 }, AOT: { exec:0, pend:0, fail:0, gas:0 } };
 let running = false;
 
-// session-per-gate cumulative arrays (keep charts consistent with stats)
+// per-gate cumulative session arrays
 let sessionExec = Array(10).fill(0);
 let sessionPend = Array(10).fill(0);
 let sessionFail = Array(10).fill(0);
 let sessionGasAOT = Array(10).fill(0);
 let sessionGasJIT = Array(10).fill(0);
 
-// === Create slots (UI boxes) ===
-for (let i=1;i<=10;i++){
+// === Setup slots ===
+for (let i = 1; i <= 10; i++) {
   const slot = document.createElement("div");
   slot.className = "slot";
   slot.id = `slot-${i}`;
@@ -32,87 +32,89 @@ for (let i=1;i<=10;i++){
   slotsContainer.appendChild(slot);
 }
 
-// === Init charts ===
-function initCharts(){
+// === Init Charts ===
+function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
     type: "line",
     data: {
-      labels: Array.from({length:10},(_,i)=>`Gate ${i+1}`),
+      labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label: "Executed", borderColor:"#22c55e", backgroundColor:"rgba(34,197,94,0.08)", data:[...sessionExec], fill:true, pointRadius:3 },
-        { label: "Pending", borderColor:"#facc15", backgroundColor:"rgba(250,204,21,0.06)", data:[...sessionPend], fill:true, pointRadius:3 },
-        { label: "Failed", borderColor:"#ef4444", backgroundColor:"rgba(239,68,68,0.06)", data:[...sessionFail], fill:true, pointRadius:3 }
+        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.08)", data: [...sessionExec], fill: true, pointRadius: 3 },
+        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.06)", data: [...sessionPend], fill: true, pointRadius: 3 },
+        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.06)", data: [...sessionFail], fill: true, pointRadius: 3 }
       ]
     },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{legend:{position:'top'}},
-      scales:{
-        y:{
-          beginAtZero:true,
-          ticks:{
-            precision:0 // integer ticks for TX counts
-          }
-        }
-      }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { position: 'top' } }
     }
   });
 
   const gasCtx = document.getElementById("gasChart").getContext("2d");
   gasChart = new Chart(gasCtx, {
-    type:"bar",
-    data:{
-      labels: Array.from({length:10},(_,i)=>`Gate ${i+1}`),
-      datasets:[
-        { label: "AOT Gas", backgroundColor:"#00c853", data:[...sessionGasAOT] },
-        { label: "JIT Gas", backgroundColor:"#2979ff", data:[...sessionGasJIT] }
+    type: "bar",
+    data: {
+      labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
+      datasets: [
+        { label: "AOT Gas", backgroundColor: "#00c853", data: [...sessionGasAOT] },
+        { label: "JIT Gas", backgroundColor: "#2979ff", data: [...sessionGasJIT] }
       ]
     },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      scales:{
-        y:{
-          beginAtZero:true,
-          ticks:{
-            callback: v => parseFloat(v).toFixed(6)
-          }
-        }
-      },
-      plugins:{legend:{position:'top'}}
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { callback: v => parseFloat(v).toFixed(6) } } },
+      plugins: { legend: { position: 'top' } }
     }
   });
 }
 initCharts();
 
 // === Helpers ===
-const rand = (min,max)=> Math.random()*(max-min)+min;
-const distribute = (total, n=10)=>{
-  const base = Math.floor(total/n);
-  let rem = total - base*n;
-  const arr = Array(n).fill(base);
-  for (let i=0;i<rem;i++) arr[i % n]++;
-  return arr;
-};
-function determineRates(scenario, mode){
-  let base;
-  if (scenario === "HighFee") base = {exec:0.82, pend:0.13, fail:0.05};
-  else if (scenario === "Congested") base = {exec:0.75, pend:0.18, fail:0.07};
-  else base = {exec:0.90, pend:0.07, fail:0.03};
-  if (mode === "AOT"){
-    base.exec = Math.min(base.exec + 0.05, 0.98);
-    base.pend = Math.max(base.pend - 0.03, 0.01);
-    base.fail = Math.max(base.fail - 0.02, 0.001);
+const rand = (min, max) => Math.random() * (max - min) + min;
+const distribute = (total, n = 10) => {
+  const avg = total / n;
+  let arr = [];
+  for (let i = 0; i < n; i++) {
+    const jitter = rand(0.85, 1.15); // ±15% chênh lệch giữa gate
+    arr.push(Math.max(1, Math.round(avg * jitter)));
   }
-  // normalize so sum = 1 (guard vs rounding)
+  const sum = arr.reduce((a, b) => a + b, 0);
+  const ratio = total / sum;
+  return arr.map(v => Math.round(v * ratio));
+};
+
+function determineRates(scenario, mode) {
+  let base;
+  if (scenario === "HighFee") base = { exec: 0.80, pend: 0.15, fail: 0.05 };
+  else if (scenario === "Congested") base = { exec: 0.75, pend: 0.18, fail: 0.07 };
+  else base = { exec: 0.88, pend: 0.09, fail: 0.03 }; // Normal
+
+  if (mode === "AOT") {
+    base.exec = Math.min(base.exec + rand(0.05, 0.07), 0.98);
+    base.pend = Math.max(base.pend - rand(0.04, 0.06), 0.01);
+    base.fail = Math.max(base.fail - rand(0.02, 0.025), 0.002);
+  } else {
+    base.exec = Math.max(base.exec - rand(0.04, 0.06), 0.70);
+    base.pend = Math.min(base.pend + rand(0.03, 0.05), 0.20);
+    base.fail = Math.min(base.fail + rand(0.02, 0.04), 0.08);
+  }
+
   const s = base.exec + base.pend + base.fail;
-  base.exec/=s; base.pend/=s; base.fail/=s;
+  base.exec /= s; base.pend /= s; base.fail /= s;
   return base;
 }
-function gasForExec(mode){
-  return +(mode==="AOT"? rand(0.00004,0.00008): rand(0.00002,0.000045)).toFixed(6);
+
+// === GAS CALC — realistic (AOT +1–2%) ===
+function gasForExec(mode) {
+  if (mode === "AOT") {
+    return +(rand(0.0000408, 0.0000510)).toFixed(6); // chỉ tăng nhẹ
+  } else {
+    return +(rand(0.0000400, 0.0000500)).toFixed(6);
+  }
 }
 
 // === Reset ===
@@ -120,29 +122,21 @@ resetBtn.onclick = () => {
   if (running) return;
   totalExec = totalPend = totalFail = 0;
   totalGasAOT = totalGasJIT = 0;
-  cumulative = { JIT: { exec:0, pend:0, fail:0, gas:0 }, AOT: { exec:0, pend:0, fail:0, gas:0 } };
-  sessionExec = Array(10).fill(0);
-  sessionPend = Array(10).fill(0);
-  sessionFail = Array(10).fill(0);
-  sessionGasAOT = Array(10).fill(0);
-  sessionGasJIT = Array(10).fill(0);
+  cumulative = { JIT: { exec: 0, pend: 0, fail: 0, gas: 0 }, AOT: { exec: 0, pend: 0, fail: 0, gas: 0 } };
+  sessionExec.fill(0); sessionPend.fill(0); sessionFail.fill(0);
+  sessionGasAOT.fill(0); sessionGasJIT.fill(0);
 
   document.querySelectorAll(".exec,.pend,.fail").forEach(el => el.textContent = "0");
-  txChart.data.datasets[0].data = [...sessionExec];
-  txChart.data.datasets[1].data = [...sessionPend];
-  txChart.data.datasets[2].data = [...sessionFail];
-  gasChart.data.datasets[0].data = [...sessionGasAOT];
-  gasChart.data.datasets[1].data = [...sessionGasJIT];
-  txChart.update(); gasChart.update();
-  updateStats();
-  document.querySelectorAll(".popup-compare").forEach(p=>p.remove());
+  txChart.data.datasets.forEach(ds => ds.data.fill(0));
+  gasChart.data.datasets.forEach(ds => ds.data.fill(0));
+  txChart.update(); gasChart.update(); updateStats();
+  document.querySelectorAll(".popup-compare").forEach(p => p.remove());
 };
 
 // === Start Simulation ===
-startBtn.onclick = async () => {
+startBtn.onclick = () => {
   if (running) return;
-  running = true;
-  startBtn.disabled = true;
+  running = true; startBtn.disabled = true;
 
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
@@ -151,177 +145,89 @@ startBtn.onclick = async () => {
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
 
-  // compute deterministic counts per gate for this run
-  const execArr = Array(10).fill(0);
-  const pendArr = Array(10).fill(0);
-  const failArr = Array(10).fill(0);
+  let sumExec = 0, sumPend = 0, sumFail = 0;
 
-  let sExec=0, sPend=0, sFail=0;
-  for (let i=0;i<10;i++){
+  for (let i = 0; i < 10; i++) {
     const tx = perGate[i];
     const e = Math.round(tx * rates.exec);
     const f = Math.round(tx * rates.fail);
     const p = Math.max(0, tx - e - f);
-    execArr[i]=e; pendArr[i]=p; failArr[i]=f;
-    sExec+=e; sPend+=p; sFail+=f;
-  }
+    sumExec += e; sumPend += p; sumFail += f;
 
-  // fix drift so sum equals totalTX
-  let drift = (sExec+sPend+sFail) - totalTX;
-  while (drift !== 0){
-    if (drift > 0){
-      // remove from pending first, then failed, then exec
-      let removed=false;
-      for (let pick of ['pend','fail','exec']){
-        for (let j=0;j<10;j++){
-          if (pick==='pend' && pendArr[j]>0){ pendArr[j]--; sPend--; drift--; removed=true; break; }
-          if (pick==='fail' && failArr[j]>0){ failArr[j]--; sFail--; drift--; removed=true; break; }
-          if (pick==='exec' && execArr[j]>0){ execArr[j]--; sExec--; drift--; removed=true; break; }
-        }
-        if (removed) break;
-      }
-    } else {
-      // drift < 0 -> need to add to exec
-      for (let j=0;j<10 && drift<0;j++){
-        execArr[j]++; sExec++; drift++;
-      }
-    }
-  }
+    sessionExec[i] += e;
+    sessionPend[i] += p;
+    sessionFail[i] += f;
 
-  // Update UI boxes for this run (display last-run counts beside cumulative)
-  for (let i=0;i<10;i++){
-    const slot = document.getElementById(`slot-${i+1}`);
-    // Show cumulative in the boxes (as you wanted consistent)
-    sessionExec[i] += execArr[i];
-    sessionPend[i] += pendArr[i];
-    sessionFail[i] += failArr[i];
-
+    const slot = document.getElementById(`slot-${i + 1}`);
     slot.querySelector(".exec").textContent = sessionExec[i];
     slot.querySelector(".pend").textContent = sessionPend[i];
     slot.querySelector(".fail").textContent = sessionFail[i];
 
-    // gas for this run (per-gate) and add to session gas arrays
-    const gasUsed = +(gasForExec(mode) * execArr[i]).toFixed(6);
-    if (mode === "AOT"){
-      sessionGasAOT[i] = +( (sessionGasAOT[i] || 0) + gasUsed ).toFixed(6);
-      totalGasAOT += gasUsed;
-      cumulative.AOT.gas += gasUsed;
+    const g = gasForExec(mode) * e;
+    if (mode === "AOT") {
+      sessionGasAOT[i] += g; totalGasAOT += g; cumulative.AOT.gas += g;
     } else {
-      sessionGasJIT[i] = +( (sessionGasJIT[i] || 0) + gasUsed ).toFixed(6);
-      totalGasJIT += gasUsed;
-      cumulative.JIT.gas += gasUsed;
+      sessionGasJIT[i] += g; totalGasJIT += g; cumulative.JIT.gas += g;
     }
   }
 
-  // accumulate totals
-  totalExec += sExec; totalPend += sPend; totalFail += sFail;
-  if (mode === "AOT"){ cumulative.AOT.exec += sExec; cumulative.AOT.pend += sPend; cumulative.AOT.fail += sFail; }
-  else { cumulative.JIT.exec += sExec; cumulative.JIT.pend += sPend; cumulative.JIT.fail += sFail; }
+  totalExec += sumExec; totalPend += sumPend; totalFail += sumFail;
+  if (mode === "AOT") { cumulative.AOT.exec += sumExec; cumulative.AOT.pend += sumPend; cumulative.AOT.fail += sumFail; }
+  else { cumulative.JIT.exec += sumExec; cumulative.JIT.pend += sumPend; cumulative.JIT.fail += sumFail; }
 
-  // Update charts to reflect session (cumulative) arrays
   txChart.data.datasets[0].data = [...sessionExec];
   txChart.data.datasets[1].data = [...sessionPend];
   txChart.data.datasets[2].data = [...sessionFail];
   gasChart.data.datasets[0].data = [...sessionGasAOT];
   gasChart.data.datasets[1].data = [...sessionGasJIT];
 
-  // Dynamically adjust y-axis max for txChart so proportions look natural
-  const maxTx = Math.max(...sessionExec, ...sessionPend, ...sessionFail, 1);
-  txChart.options.scales.y.suggestedMax = Math.ceil(maxTx * 1.15); // small headroom
-  txChart.update();
-  gasChart.update();
-  updateStats();
+  const maxY = Math.max(...sessionExec, ...sessionPend, ...sessionFail, 10);
+  txChart.options.scales.y.suggestedMax = Math.ceil(maxY * 1.1);
+  txChart.update(); gasChart.update(); updateStats();
 
-  // Pending resolution (decay) — operate on session arrays and totals so charts remain consistent
-  const decayTicks = 5;
-  let tick = 0;
-  const gasPerTick = gasForExec(mode); // approximate per-tick gas for conversions
-  const interval = setInterval(()=>{
+  // === Pending resolution ===
+  let tick = 0; const decayTicks = 5;
+  const interval = setInterval(() => {
     tick++;
-    const pendingNow = sessionPend.reduce((a,b)=>a+b,0);
-    if (pendingNow <= 0 || tick > decayTicks){
-      clearInterval(interval);
-      running = false;
-      startBtn.disabled = false;
-      updateStats();
-      return;
-    }
-    // convert a fraction of pending to exec deterministically
-    const convertTarget = Math.ceil(pendingNow / (decayTicks - tick + 1));
-    // distribute convert across gates proportionally
-    const pendingPerGate = sessionPend.map(v=>v);
-    const pendingSum = pendingPerGate.reduce((a,b)=>a+b,0) || 1;
-    let convertedTotal = 0;
-    for (let i=0;i<10;i++){
-      if (sessionPend[i] <= 0) continue;
-      const take = Math.min(sessionPend[i], Math.max(1, Math.round(convertTarget * (sessionPend[i]/pendingSum))));
-      sessionPend[i] -= take;
-      sessionExec[i] += take;
-      convertedTotal += take;
-      totalPend -= take;
-      totalExec += take;
-      // add gas for these newly executed tx
-      const gasAdd = +(gasPerTick * take).toFixed(6);
-      if (mode === "AOT"){
-        sessionGasAOT[i] = +( (sessionGasAOT[i] || 0) + gasAdd ).toFixed(6);
-        totalGasAOT += gasAdd;
-        cumulative.AOT.gas += gasAdd;
-      } else {
-        sessionGasJIT[i] = +( (sessionGasJIT[i] || 0) + gasAdd ).toFixed(6);
-        totalGasJIT += gasAdd;
-        cumulative.JIT.gas += gasAdd;
-      }
-    }
-    // if due to rounding nothing converted (rare), force convert 1 pending
-    if (convertedTotal === 0 && pendingNow > 0){
-      for (let i=0;i<10;i++){
-        if (sessionPend[i] > 0){
-          sessionPend[i]--; sessionExec[i]++; totalPend--; totalExec++;
-          const gasAdd = +(gasPerTick).toFixed(6);
-          if (mode === "AOT"){ sessionGasAOT[i] += gasAdd; totalGasAOT += gasAdd; cumulative.AOT.gas += gasAdd; }
-          else { sessionGasJIT[i] += gasAdd; totalGasJIT += gasAdd; cumulative.JIT.gas += gasAdd; }
-          break;
-        }
-      }
+    const pendingNow = sessionPend.reduce((a, b) => a + b, 0);
+    if (pendingNow <= 0 || tick > decayTicks) { clearInterval(interval); running = false; startBtn.disabled = false; return; }
+
+    const convert = Math.ceil(pendingNow / (decayTicks - tick + 1));
+    for (let i = 0; i < 10; i++) {
+      const take = Math.min(sessionPend[i], Math.round(convert * (sessionPend[i] / pendingNow)));
+      if (take <= 0) continue;
+      sessionPend[i] -= take; sessionExec[i] += take;
+      totalPend -= take; totalExec += take;
+
+      const gasAdd = gasForExec(mode) * take;
+      if (mode === "AOT") { sessionGasAOT[i] += gasAdd; totalGasAOT += gasAdd; cumulative.AOT.gas += gasAdd; }
+      else { sessionGasJIT[i] += gasAdd; totalGasJIT += gasAdd; cumulative.JIT.gas += gasAdd; }
     }
 
-    // sync UI boxes and charts
-    for (let i=0;i<10;i++){
-      const slot = document.getElementById(`slot-${i+1}`);
-      slot.querySelector(".exec").textContent = sessionExec[i];
-      slot.querySelector(".pend").textContent = sessionPend[i];
-      slot.querySelector(".fail").textContent = sessionFail[i];
-    }
     txChart.data.datasets[0].data = [...sessionExec];
     txChart.data.datasets[1].data = [...sessionPend];
-    gasChart.data.datasets[0].data = [...sessionGasAOT];
-    gasChart.data.datasets[1].data = [...sessionGasJIT];
-
-    const maxTxNow = Math.max(...sessionExec, ...sessionPend, ...sessionFail, 1);
-    txChart.options.scales.y.suggestedMax = Math.ceil(maxTxNow * 1.15);
     txChart.update(); gasChart.update(); updateStats();
   }, 900);
 };
 
-// === Update Stats UI ===
-function updateStats(){
+// === Update Stats ===
+function updateStats() {
   const total = totalExec + totalPend + totalFail;
+  document.getElementById("totalRunVal").textContent = total;
   document.getElementById("executedVal").textContent = totalExec;
   document.getElementById("failedVal").textContent = totalFail;
   document.getElementById("pendingVal").textContent = totalPend;
-  document.getElementById("totalRunVal").textContent = total;
   document.getElementById("jitGasVal").textContent = totalGasJIT.toFixed(6);
   document.getElementById("aotGasVal").textContent = totalGasAOT.toFixed(6);
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
 }
 
-// === Compare Popup (unchanged semantics, uses cumulative) ===
+// === Compare Popup ===
 compareBtn.onclick = () => {
-  if (cumulative.JIT.exec === 0 && cumulative.AOT.exec === 0){
-    alert("Chưa có dữ liệu để so sánh — hãy chạy mô phỏng JIT hoặc AOT ít nhất một lần.");
-    return;
+  if (cumulative.JIT.exec === 0 && cumulative.AOT.exec === 0) {
+    alert("Chưa có dữ liệu để so sánh — hãy chạy mô phỏng JIT hoặc AOT ít nhất một lần."); return;
   }
-  document.querySelectorAll(".popup-compare").forEach(p=>p.remove());
+  document.querySelectorAll(".popup-compare").forEach(p => p.remove());
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
@@ -337,7 +243,7 @@ compareBtn.onclick = () => {
   new Chart(ctx, {
     type: "bar",
     data: {
-      labels: ["Executed","Pending","Failed","Avg Gas (SOL)"],
+      labels: ["Executed", "Pending", "Failed", "Avg Gas (SOL)"],
       datasets: [
         {
           label: "JIT",
@@ -361,7 +267,7 @@ compareBtn.onclick = () => {
         }
       ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}} }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
   });
 
   popup.querySelector(".closePopup").onclick = () => popup.remove();
