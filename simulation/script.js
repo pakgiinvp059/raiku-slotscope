@@ -1,5 +1,8 @@
-// === Raiku SlotScope — Final Stable Natural Simulation (Raiku Deterministic Engine v4.0) ===
+// === Raiku SlotScope — Final Stable Simulation v4.2 ===
+// Natural TX Distribution + Deterministic AOT Fix
+// (built for Raiku Inevitable Ideathon demo)
 
+// === Element Selectors ===
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
@@ -10,117 +13,118 @@ const scenarioSelect = document.getElementById("scenario");
 let txChart, gasChart;
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
-let cumulative = { JIT: { exec:0, pend:0, fail:0, gas:0 }, AOT: { exec:0, pend:0, fail:0, gas:0 } };
 let running = false;
 
-// session accumulators
+let cumulative = { JIT:{exec:0,pend:0,fail:0,gas:0}, AOT:{exec:0,pend:0,fail:0,gas:0} };
 let sessionExec = Array(10).fill(0);
 let sessionPend = Array(10).fill(0);
 let sessionFail = Array(10).fill(0);
 let sessionGasAOT = Array(10).fill(0);
 let sessionGasJIT = Array(10).fill(0);
 
-// === Create Slots ===
-for (let i=1; i<=10; i++){
-  const slot = document.createElement("div");
-  slot.className = "slot";
-  slot.id = `slot-${i}`;
-  slot.innerHTML = `
+// === Create Gates ===
+for (let i=1;i<=10;i++){
+  const slot=document.createElement("div");
+  slot.className="slot";
+  slot.id=`slot-${i}`;
+  slot.innerHTML=`
     <b>Gate ${i}</b>
-    <div class="dots"><div class="dot green"></div><div class="dot yellow"></div><div class="dot red"></div></div>
+    <div class="dots">
+      <div class="dot green"></div><div class="dot yellow"></div><div class="dot red"></div>
+    </div>
     <div><span class="exec">0</span> / <span class="pend">0</span> / <span class="fail">0</span></div>`;
   slotsContainer.appendChild(slot);
 }
 
 // === Charts ===
 function initCharts(){
-  const txCtx = document.getElementById("txChart").getContext("2d");
-  txChart = new Chart(txCtx, {
-    type: "line",
-    data: {
-      labels: Array.from({length:10},(_,i)=>`Gate ${i+1}`),
-      datasets: [
-        { label: "Executed", borderColor:"#22c55e", backgroundColor:"rgba(34,197,94,0.08)", data:[...sessionExec], fill:true, pointRadius:3 },
-        { label: "Pending", borderColor:"#facc15", backgroundColor:"rgba(250,204,21,0.06)", data:[...sessionPend], fill:true, pointRadius:3 },
-        { label: "Failed", borderColor:"#ef4444", backgroundColor:"rgba(239,68,68,0.06)", data:[...sessionFail], fill:true, pointRadius:3 }
+  const txCtx=document.getElementById("txChart").getContext("2d");
+  txChart=new Chart(txCtx,{
+    type:"line",
+    data:{
+      labels:Array.from({length:10},(_,i)=>`Gate ${i+1}`),
+      datasets:[
+        {label:"Executed",borderColor:"#22c55e",backgroundColor:"rgba(34,197,94,0.08)",data:[...sessionExec],fill:true,pointRadius:3},
+        {label:"Pending",borderColor:"#facc15",backgroundColor:"rgba(250,204,21,0.06)",data:[...sessionPend],fill:true,pointRadius:3},
+        {label:"Failed",borderColor:"#ef4444",backgroundColor:"rgba(239,68,68,0.06)",data:[...sessionFail],fill:true,pointRadius:3}
       ]
     },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}}
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}}}
   });
 
-  const gasCtx = document.getElementById("gasChart").getContext("2d");
-  gasChart = new Chart(gasCtx,{
+  const gasCtx=document.getElementById("gasChart").getContext("2d");
+  gasChart=new Chart(gasCtx,{
     type:"bar",
     data:{
       labels:Array.from({length:10},(_,i)=>`Gate ${i+1}`),
       datasets:[
-        { label:"AOT Gas", backgroundColor:"#00c853", data:[...sessionGasAOT] },
-        { label:"JIT Gas", backgroundColor:"#2979ff", data:[...sessionGasJIT] }
+        {label:"AOT Gas",backgroundColor:"#00c853",data:[...sessionGasAOT]},
+        {label:"JIT Gas",backgroundColor:"#2979ff",data:[...sessionGasJIT]}
       ]
     },
     options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ y:{ ticks:{ callback:v=>parseFloat(v).toFixed(6) } } },
-      plugins:{legend:{position:'top'}}
+      responsive:true,maintainAspectRatio:false,
+      scales:{y:{ticks:{callback:v=>parseFloat(v).toFixed(6)}}},
+      plugins:{legend:{position:"top"}}
     }
   });
 }
 initCharts();
 
-// === Helper ===
-const rand = (min,max)=>Math.random()*(max-min)+min;
-const randInt = (min,max)=>Math.floor(rand(min,max+1));
+// === Helpers ===
+const rand=(min,max)=>Math.random()*(max-min)+min;
 function gaussianRand(){
-  // Box-Muller transform for realistic natural spread
   let u=0,v=0;
   while(u===0)u=Math.random();
   while(v===0)v=Math.random();
   return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
 }
 
-// === Distribute TX with natural jitter ===
+// === Distribute TX (smooth, total exact) ===
 function distribute(total,n=10){
-  let arr = [];
-  const mean = total/n;
+  const avg=total/n;
+  let arr=[],sum=0;
   for(let i=0;i<n;i++){
-    const jitter = gaussianRand()*0.15; // ±15%
-    arr.push(Math.max(1, Math.round(mean*(1+jitter))));
+    const bias=Math.sin((i/n)*Math.PI)*0.08;
+    const jitter=rand(0.90+bias,1.10+bias/2);
+    const val=Math.max(1,Math.round(avg*jitter));
+    arr.push(val);sum+=val;
   }
-  const sum = arr.reduce((a,b)=>a+b,0);
-  const ratio = total/sum;
-  return arr.map(v=>Math.round(v*ratio));
+  let drift=sum-total;
+  while(drift!==0){
+    for(let i=0;i<n&&drift!==0;i++){
+      if(drift>0&&arr[i]>1){arr[i]--;drift--;}
+      else if(drift<0){arr[i]++;drift++;}
+    }
+  }
+  return arr;
 }
 
-// === Determine Rates ===
-function determineRates(scenario, mode){
+// === Determine Rates (per scenario + mode) ===
+function determineRates(scenario,mode){
   let base;
-  if (scenario==="HighFee") base={exec:0.8,pend:0.14,fail:0.06};
-  else if (scenario==="Congested") base={exec:0.75,pend:0.18,fail:0.07};
-  else base={exec:0.88,pend:0.09,fail:0.03};
+  if(scenario==="HighFee") base={exec:0.8,pend:0.14,fail:0.06};
+  else if(scenario==="Congested") base={exec:0.75,pend:0.18,fail:0.07};
+  else base={exec:0.88,pend:0.09,fail:0.03}; // Normal
 
-  if (mode==="AOT"){
-    // deterministic mode: fewer fails/pending, optimized
-    base.exec = Math.min(base.exec + rand(0.06,0.08),0.99);
-    base.pend = Math.max(base.pend - rand(0.05,0.07),0.01);
-    base.fail = Math.max(base.fail - rand(0.02,0.025),0.001);
+  if(mode==="AOT"){
+    base.exec=Math.min(base.exec+rand(0.06,0.08),0.99);
+    base.pend=Math.max(base.pend-rand(0.05,0.07),0.01);
+    base.fail=Math.max(base.fail-rand(0.02,0.025),0.001);
   } else {
-    // JIT: more variance, uncertain finality
-    base.exec = Math.max(base.exec - rand(0.05,0.07),0.65);
-    base.pend = Math.min(base.pend + rand(0.04,0.06),0.22);
-    base.fail = Math.min(base.fail + rand(0.03,0.05),0.1);
+    base.exec=Math.max(base.exec-rand(0.05,0.07),0.65);
+    base.pend=Math.min(base.pend+rand(0.04,0.06),0.22);
+    base.fail=Math.min(base.fail+rand(0.03,0.05),0.1);
   }
 
-  const sum = base.exec+base.pend+base.fail;
-  base.exec/=sum; base.pend/=sum; base.fail/=sum;
+  const sum=base.exec+base.pend+base.fail;
+  base.exec/=sum;base.pend/=sum;base.fail/=sum;
   return base;
 }
 
-// === Gas Cost (AOT slightly higher) ===
+// === Gas cost (AOT slightly higher) ===
 function gasForExec(mode){
-  return +(mode==="AOT"
-    ? rand(0.0000408,0.0000510)
-    : rand(0.0000400,0.0000500)
-  ).toFixed(6);
+  return +(mode==="AOT"?rand(0.0000408,0.0000510):rand(0.0000400,0.0000500)).toFixed(6);
 }
 
 // === Reset ===
@@ -152,15 +156,12 @@ startBtn.onclick=()=>{
   let sumExec=0,sumPend=0,sumFail=0;
   for(let i=0;i<10;i++){
     const tx=perGate[i];
-    let e=Math.round(tx*(rates.exec + gaussianRand()*0.02));
-    let f=Math.round(tx*(rates.fail + gaussianRand()*0.01));
-    let p=Math.max(0,tx-e-f);
-    e=Math.max(e,0);f=Math.max(f,0);
+    const smoothBias=Math.sin((i/10)*Math.PI)*0.04;
+    const e=Math.round(tx*(rates.exec+smoothBias));
+    const f=Math.round(tx*(rates.fail+rand(-0.01,0.01)));
+    const p=Math.max(0,tx-e-f);
     sumExec+=e;sumPend+=p;sumFail+=f;
-
-    sessionExec[i]+=e;
-    sessionPend[i]+=p;
-    sessionFail[i]+=f;
+    sessionExec[i]+=e;sessionPend[i]+=p;sessionFail[i]+=f;
 
     const slot=document.getElementById(`slot-${i+1}`);
     slot.querySelector(".exec").textContent=sessionExec[i];
@@ -183,19 +184,18 @@ startBtn.onclick=()=>{
   gasChart.data.datasets[1].data=[...sessionGasJIT];
   txChart.update();gasChart.update();updateStats();
 
-  // === Pending resolution (AOT resolves better) ===
+  // === Pending decay (AOT resolves most) ===
   let tick=0;const decayTicks=6;
   const interval=setInterval(()=>{
     tick++;
     const pendingNow=sessionPend.reduce((a,b)=>a+b,0);
     if(pendingNow<=0||tick>decayTicks){clearInterval(interval);running=false;startBtn.disabled=false;return;}
     let convert=Math.ceil(pendingNow/(decayTicks-tick+1));
-    if(mode==="AOT") convert*=1.5; // AOT resolves faster
+    if(mode==="AOT") convert*=1.5;
     for(let i=0;i<10;i++){
       const take=Math.min(sessionPend[i],Math.round(convert*(sessionPend[i]/pendingNow)));
       if(take<=0)continue;
-      sessionPend[i]-=take;
-      sessionExec[i]+=take;
+      sessionPend[i]-=take;sessionExec[i]+=take;
       totalPend-=take;totalExec+=take;
       const gasAdd=gasForExec(mode)*take;
       if(mode==="AOT"){sessionGasAOT[i]+=gasAdd;totalGasAOT+=gasAdd;cumulative.AOT.gas+=gasAdd;}
@@ -207,7 +207,7 @@ startBtn.onclick=()=>{
   },900);
 };
 
-// === Stats Update ===
+// === Update Stats ===
 function updateStats(){
   const total=totalExec+totalPend+totalFail;
   document.getElementById("executedVal").textContent=totalExec;
@@ -250,7 +250,7 @@ compareBtn.onclick=()=>{
           cumulative.AOT.exec?+(cumulative.AOT.gas/cumulative.AOT.exec).toFixed(6):0]}
       ]
     },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}}}
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}}}
   });
   popup.querySelector(".closePopup").onclick=()=>popup.remove();
 };
