@@ -19,7 +19,7 @@ header h1 {
 }
 header p {
   font-size: 16px;
-  opacity: 0.95;
+  opacity: 0.9;
   margin: 4px 0 0 0;
 }
 
@@ -43,8 +43,8 @@ header p {
 }
 .controls button:hover { background: #005fd1; }
 .controls input[type="number"] {
-  width: 80px;
-  padding: 4px 6px;
+  width: 60px;
+  padding: 2px 4px;
   border-radius: 4px;
   border: 1px solid #cfd9e3;
 }
@@ -53,7 +53,7 @@ header p {
 .slots-container {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  gap: 12px;
+  gap: 10px;
   width: 85%;
   padding: 0 7.5%;
   margin-top: 10px;
@@ -64,11 +64,10 @@ header p {
   border-radius: 10px;
   border: 1px solid #e6eef6;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  padding: 10px;
+  padding: 8px;
   font-size: 13px;
 }
-.slot b { display:block; margin-bottom:6px; }
-.dots { display:flex; justify-content:center; gap:6px; margin-bottom:6px; }
+.dots { display:flex; justify-content:center; gap:5px; margin-bottom:5px; }
 .dot { width:10px; height:10px; border-radius:50%; }
 .green { background:#22c55e; }
 .yellow { background:#facc15; }
@@ -109,13 +108,13 @@ header p {
   grid-template-columns: 3fr 1fr;
   gap: 10px;
   width: 100%;
-  height: 320px;
+  height: 300px;
 }
 .chart {
   background: #fff;
   border: 1px solid #eaf1f6;
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
 }
 
 /* STATS */
@@ -123,7 +122,7 @@ header p {
   display: flex;
   justify-content: space-evenly;
   flex-wrap: wrap;
-  padding: 12px 7.5%;
+  padding: 10px 7.5%;
   width: 85%;
 }
 .stat {
@@ -131,7 +130,7 @@ header p {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 0 5px rgba(0,0,0,0.06);
-  padding: 8px 14px;
+  padding: 8px 12px;
   font-size: 13px;
 }
 .stat span { font-weight: bold; color: #007aff; }
@@ -146,9 +145,9 @@ header p {
   border-radius: 10px;
   box-shadow: 0 4px 25px rgba(0,0,0,0.2);
   z-index: 2000;
-  animation: fadeInUp 0.24s ease-out;
-  width: 680px;
-  max-width: 94%;
+  animation: fadeInUp 0.3s ease-out;
+  width: 560px;
+  height: 420px;
   padding: 16px;
 }
 @keyframes fadeInUp {
@@ -158,27 +157,27 @@ header p {
 .popup-inner { text-align: center; }
 .popup-inner canvas {
   width: 100%;
-  height: 260px !important;
+  height: 240px !important;
 }
 .popup-inner strong {
   display: block;
   margin-bottom: 6px;
-  font-size: 16px;
+  font-size: 15px;
   color: #111;
 }
 .popup-inner p {
   font-size: 13px;
-  margin: 6px 0;
+  margin: 4px 0;
   color: #333;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 .closePopup {
-  margin-top: 8px;
+  margin-top: 10px;
   background: #007aff;
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 14px;
+  border-radius: 5px;
+  padding: 5px 14px;
   cursor: pointer;
 }
 .closePopup:hover { background: #005fcb; }
