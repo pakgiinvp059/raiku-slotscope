@@ -115,8 +115,6 @@ header p {
   border: 1px solid #eaf1f6;
   border-radius: 8px;
   padding: 10px;
-  display: flex;
-  align-items: center;
 }
 
 /* STATS */
@@ -147,15 +145,32 @@ header p {
   border-radius: 10px;
   box-shadow: 0 4px 25px rgba(0,0,0,0.2);
   z-index: 2000;
-  width: 640px;
+  animation: fadeInUp 0.3s ease-out;
+  width: 560px;
   height: 420px;
   padding: 16px;
-  overflow: hidden;
+}
+@keyframes fadeInUp {
+  from { transform: translate(-50%, -40%); opacity: 0; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
 }
 .popup-inner { text-align: center; }
-.popup-inner canvas { width: 100%; height: 260px !important; display: block; }
-.popup-inner strong { display: block; margin-bottom: 6px; font-size: 15px; color: #111; }
-.popup-inner p { font-size: 13px; margin: 4px 0; color: #333; line-height: 1.3; }
+.popup-inner canvas {
+  width: 100%;
+  height: 240px !important;
+}
+.popup-inner strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  color: #111;
+}
+.popup-inner p {
+  font-size: 13px;
+  margin: 4px 0;
+  color: #333;
+  line-height: 1.3;
+}
 .closePopup {
   margin-top: 10px;
   background: #007aff;
