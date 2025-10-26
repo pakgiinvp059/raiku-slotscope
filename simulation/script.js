@@ -1,5 +1,6 @@
-// script.js — Raiku SlotScope v5.1.1 (Scenario-corrected, cumulative stable logic)
-// Keep UI unchanged. Fix: scenario rates (Normal < HighFee < Congested), cumulative logic.
+// script.js — Raiku SlotScope v5.1.2 (Realistic TX Flow)
+// Keep UI identical. Adjusted rates for realistic visual fluctuation.
+// Normal scenario now has small nonzero errors (1–2 extra per 100 TX).
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -19,14 +20,14 @@ let statsByMode = {
   AOT: { total: 0, exec: 0, pend: 0, fail: 0, gas: 0 }
 };
 
-// Gate-level accumulators (persistent across runs)
+// Gate accumulators
 let sessionExec = Array(10).fill(0);
 let sessionPend = Array(10).fill(0);
 let sessionFail = Array(10).fill(0);
 let sessionGasAOT = Array(10).fill(0);
 let sessionGasJIT = Array(10).fill(0);
 
-// --- Build gate UI (unchanged) ---
+// Build gates UI
 for (let i = 1; i <= 10; i++) {
   const gate = document.createElement("div");
   gate.className = "slot";
@@ -38,7 +39,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(gate);
 }
 
-// --- Charts init (unchanged look) ---
+// Charts
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -74,14 +75,14 @@ function initCharts() {
 }
 initCharts();
 
-// --- Helpers ---
+// Helpers
 const rand = (min, max) => Math.random() * (max - min) + min;
 
 function distribute(total, n = 10) {
   const avg = total / n;
   const arr = [];
   for (let i = 0; i < n; i++) {
-    const noise = rand(0.85, 1.15);
+    const noise = rand(0.9, 1.1);
     arr.push(Math.max(1, Math.round(avg * noise)));
   }
   const diff = total - arr.reduce((a, b) => a + b, 0);
@@ -91,47 +92,45 @@ function distribute(total, n = 10) {
 
 /*
   determineRates(mode, scenario)
-  - scenario: "Normal", "HighFee", "Congested"
-  Desired order of fail rate: Normal < HighFee < Congested
-  Desired pending: Normal low, HighFee medium, Congested high
-  AOT adjusts to be much better than JIT across scenarios
+  - Normal: few errors, small random drift (adds realism)
+  - HighFee: moderate congestion
+  - Congested: high fail/pending
 */
 function determineRates(mode, scenario) {
-  // base per scenario (before mode adjust)
   let base;
   if (scenario === "Congested") {
     base = { exec: 0.75, pend: 0.17, fail: 0.08 };
   } else if (scenario === "HighFee") {
     base = { exec: 0.82, pend: 0.12, fail: 0.06 };
-  } else { // Normal
-    base = { exec: 0.90, pend: 0.07, fail: 0.03 };
-  }
-
-  // mode adjustments: AOT improves exec/pend/fail slightly; JIT slightly worse
-  if (mode === "AOT") {
-    // AOT small exec boost, reduce pend and fail substantially
-    base.exec = Math.min(0.995, base.exec + rand(0.04, 0.07));
-    base.pend = Math.max(0.001, base.pend * rand(0.08, 0.25)); // much smaller pending fraction
-    base.fail = Math.max(0.0005, base.fail * rand(0.1, 0.35)); // fail lower
   } else {
-    // JIT slightly worse than base: a bit less exec, more pend/fail
-    base.exec = Math.max(0.60, base.exec - rand(0.02, 0.06));
-    base.pend = Math.min(0.30, base.pend * rand(1.05, 1.35));
-    base.fail = Math.min(0.20, base.fail * rand(1.1, 1.6));
+    base = { exec: 0.90, pend: 0.075, fail: 0.025 }; // Normal slightly noisier
   }
 
-  // normalize to ensure exec+pend+fail ~= 1 (rounding later)
+  // Small live fluctuation
+  base.exec += rand(-0.005, 0.005);
+  base.pend += rand(-0.003, 0.003);
+  base.fail += rand(-0.002, 0.002);
+
+  // Mode adjustments
+  if (mode === "AOT") {
+    base.exec = Math.min(0.995, base.exec + rand(0.04, 0.07));
+    base.pend = Math.max(0.001, base.pend * rand(0.08, 0.25));
+    base.fail = Math.max(0.0005, base.fail * rand(0.1, 0.35));
+  } else {
+    base.exec = Math.max(0.60, base.exec - rand(0.02, 0.05));
+    base.pend = Math.min(0.30, base.pend * rand(1.05, 1.35));
+    base.fail = Math.min(0.20, base.fail * rand(1.1, 1.5));
+  }
+
   const s = base.exec + base.pend + base.fail;
   return { exec: base.exec / s, pend: base.pend / s, fail: base.fail / s };
 }
 
-// AOT gas slightly higher (but only ~1-2% up), JIT slightly lower
 function gasForExec(mode) {
-  if (mode === "AOT") return +(rand(0.0000425, 0.0000515)).toFixed(6);
-  return +(rand(0.0000410, 0.0000500)).toFixed(6);
+  return +(mode === "AOT" ? rand(0.0000425, 0.0000515) : rand(0.000041, 0.000050)).toFixed(6);
 }
 
-// --- Reset (keep UI unchanged) ---
+// Reset
 resetBtn.onclick = () => {
   if (running) return;
   totalExec = totalPend = totalFail = 0;
@@ -146,9 +145,7 @@ resetBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
 };
 
-// --- Start Simulation ---
-// Cumulative: each Start adds more TX to totals and gate accumulators;
-// pending/fail of prior runs remain and do not decay. AOT produces much fewer new pending/fail.
+// Start Simulation
 startBtn.onclick = () => {
   if (running) return;
   running = true;
@@ -164,65 +161,56 @@ startBtn.onclick = () => {
 
   for (let i = 0; i < 10; i++) {
     const tx = perGate[i];
-
-    // calculate expected counts using rates; ensure integer rounding doesn't create negative
     let exec = Math.round(tx * rates.exec);
     let pend = Math.round(tx * rates.pend);
     let fail = tx - exec - pend;
 
-    // correction if rounding produced negative fail or small inconsistencies
-    if (fail < 0) {
-      // move some from exec to fail/pending
-      const diff = -fail;
-      const take = Math.min(diff, exec);
-      exec -= take;
-      fail += take;
-    }
+    // small natural jitter (some gates more congested)
+    pend += Math.round(rand(-1, 2));
+    fail += Math.round(rand(-1, 2));
+    if (pend < 0) pend = 0;
+    if (fail < 0) fail = 0;
 
-    // apply cumulative addition
     sessionExec[i] += exec;
     sessionPend[i] += pend;
     sessionFail[i] += fail;
 
     sumExec += exec; sumPend += pend; sumFail += fail;
 
-    // gas accumulation
     const gasUsed = gasForExec(mode) * exec;
-    if (mode === "AOT") { sessionGasAOT[i] += gasUsed; totalGasAOT += gasUsed; statsByMode.AOT.gas += gasUsed; }
-    else { sessionGasJIT[i] += gasUsed; totalGasJIT += gasUsed; statsByMode.JIT.gas += gasUsed; }
+    if (mode === "AOT") {
+      sessionGasAOT[i] += gasUsed; totalGasAOT += gasUsed; statsByMode.AOT.gas += gasUsed;
+    } else {
+      sessionGasJIT[i] += gasUsed; totalGasJIT += gasUsed; statsByMode.JIT.gas += gasUsed;
+    }
 
-    // update gate UI text
     const slot = document.getElementById(`slot-${i + 1}`);
     slot.querySelector(".exec").textContent = sessionExec[i];
     slot.querySelector(".pend").textContent = sessionPend[i];
     slot.querySelector(".fail").textContent = sessionFail[i];
   }
 
-  // update global totals (cumulative)
   totalExec += sumExec;
   totalPend += sumPend;
   totalFail += sumFail;
 
-  // per-mode cumulative stats
   statsByMode[mode].total += totalTX;
   statsByMode[mode].exec += sumExec;
   statsByMode[mode].pend += sumPend;
   statsByMode[mode].fail += sumFail;
 
-  // update charts
   txChart.data.datasets[0].data = [...sessionExec];
   txChart.data.datasets[1].data = [...sessionPend];
   txChart.data.datasets[2].data = [...sessionFail];
   gasChart.data.datasets[0].data = [...sessionGasAOT];
   gasChart.data.datasets[1].data = [...sessionGasJIT];
-
   txChart.update(); gasChart.update(); updateStats();
 
   running = false;
   startBtn.disabled = false;
 };
 
-// --- Update stats UI ---
+// Update Stats
 function updateStats() {
   const total = totalExec + totalPend + totalFail;
   document.getElementById("executedVal").textContent = totalExec;
@@ -234,7 +222,7 @@ function updateStats() {
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
 }
 
-// --- Compare popup (unchanged behavior, show per-mode cumulative) ---
+// Compare
 compareBtn.onclick = () => {
   if (!statsByMode.JIT.total && !statsByMode.AOT.total) {
     alert("Chưa có dữ liệu để so sánh.");
@@ -243,19 +231,11 @@ compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
   const popup = document.createElement("div");
   popup.className = "popup-compare";
-
-  // percentage success per mode (exec / total)
-  const pctJIT = statsByMode.JIT.total ? (statsByMode.JIT.exec / (statsByMode.JIT.exec + statsByMode.JIT.pend + statsByMode.JIT.fail) * 100) : 0;
-  const pctAOT = statsByMode.AOT.total ? (statsByMode.AOT.exec / (statsByMode.AOT.exec + statsByMode.AOT.pend + statsByMode.AOT.fail) * 100) : 0;
-
   popup.innerHTML = `
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
       <p style="margin-top:8px;font-size:13px">So sánh hiệu suất từng mode (TX riêng). Reset để làm mới.</p>
-      <p style="font-size:13px;margin-top:6px;color:#222;">
-        <b>Success rate:</b> JIT ${pctJIT.toFixed(1)}% — AOT ${pctAOT.toFixed(1)}%
-      </p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
@@ -297,22 +277,13 @@ compareBtn.onclick = () => {
           color: "#111",
           anchor: "end",
           align: "top",
-          font: { weight: "600" },
+          font: { weight: "bold" },
           formatter: val => val.toLocaleString()
-        },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              if (ctx.label.includes("Gas")) return `${ctx.dataset.label}: ${(ctx.parsed.y / 10000).toFixed(6)} SOL`;
-              return `${ctx.dataset.label}: ${ctx.parsed.y}`;
-            }
-          }
         }
       },
       scales: { y: { beginAtZero: true, title: { display: true, text: "TX Count / Avg Gas" } } }
     },
     plugins: [ChartDataLabels]
   });
-
   popup.querySelector(".closePopup").onclick = () => popup.remove();
 };
