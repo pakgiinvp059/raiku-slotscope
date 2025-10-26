@@ -66,22 +66,12 @@ header p {
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   padding: 8px;
   font-size: 13px;
-  transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 .dots { display:flex; justify-content:center; gap:5px; margin-bottom:5px; }
 .dot { width:10px; height:10px; border-radius:50%; }
 .green { background:#22c55e; }
 .yellow { background:#facc15; }
 .red { background:#ef4444; }
-
-/* Gate active animation */
-@keyframes gateActive {
-  0%, 100% { box-shadow: 0 0 6px rgba(0,153,255,0.5); }
-  50% { box-shadow: 0 0 16px rgba(0,153,255,0.8); background: #f0faff; }
-}
-.slot.active {
-  animation: gateActive 0.7s ease-in-out infinite;
-}
 
 /* BLUEPRINT */
 .panel.blueprint {
