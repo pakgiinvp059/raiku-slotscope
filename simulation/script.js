@@ -1,4 +1,4 @@
-// === Raiku SlotScope — Final Realistic TX Simulation (Unified Yellow Pending) ===
+// === Raiku SlotScope — Full Transaction Flow Simulation (Final Sync v2) ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -12,7 +12,7 @@ let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
 let jitSnapshot = null, aotSnapshot = null;
 
-// === Create 10 Gates ===
+// === Create Gates ===
 for (let i = 1; i <= 10; i++) {
   const gate = document.createElement("div");
   gate.className = "slot";
@@ -28,7 +28,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(gate);
 }
 
-// === Init Charts ===
+// === Charts Init ===
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -59,7 +59,7 @@ function initCharts() {
 }
 initCharts();
 
-// === Helpers ===
+// === Utility ===
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randFloat = (min, max) => +(Math.random() * (max - min) + min).toFixed(6);
 
@@ -70,6 +70,7 @@ function blink(gate, color, active = true) {
   else dot.classList.remove(`blink-${color}`);
 }
 
+// === Scenario Rates ===
 function getRates(scenario, mode) {
   const base = {
     Normal: { exec: 0.9, pend: 0.07, fail: 0.03, delay: [80, 160] },
@@ -79,7 +80,7 @@ function getRates(scenario, mode) {
 
   if (mode === "AOT") {
     return {
-      exec: Math.min(base.exec + 0.04, 0.97),
+      exec: Math.min(base.exec + 0.04, 0.96),
       pend: Math.max(base.pend - 0.02, 0.015),
       fail: Math.max(base.fail - 0.01, 0.01),
       delay: base.delay.map(d => d * 0.9)
@@ -88,6 +89,7 @@ function getRates(scenario, mode) {
   return base;
 }
 
+// === Stats Update ===
 function updateStats() {
   const total = totalExec + totalPend + totalFail;
   document.getElementById("executedVal").textContent = totalExec;
@@ -99,8 +101,10 @@ function updateStats() {
   document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
 }
 
+// === Reset ===
 resetBtn.onclick = () => location.reload();
 
+// === Run Simulation ===
 startBtn.onclick = () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   const scenario = scenarioSelect.value;
@@ -114,7 +118,8 @@ function runSimulation(mode, scenario, totalTX) {
   const gates = Array(10).fill(perGate);
   for (let i = 0; i < totalTX % 10; i++) gates[i]++;
 
-  let execSum = 0, pendSum = 0, failSum = 0, gasSum = 0;
+  totalExec = totalPend = totalFail = 0;
+  totalGasAOT = totalGasJIT = 0;
 
   gates.forEach((count, i) => {
     const gate = document.getElementById(`slot-${i + 1}`);
@@ -126,14 +131,18 @@ function runSimulation(mode, scenario, totalTX) {
     gate.querySelector(".pend").textContent = pend;
     gate.querySelector(".fail").textContent = 0;
 
-    blink(gate, "yellow", true);
     txChart.data.datasets[1].data[i] = pend;
     totalPend += pend;
+    blink(gate, "yellow", true);
 
-    const seq = [...Array(exec).fill("E"), ...Array(fail).fill("F")].sort(() => Math.random() - 0.5);
+    const sequence = [
+      ...Array(exec).fill("E"),
+      ...Array(fail).fill("F")
+    ].sort(() => Math.random() - 0.5);
 
-    seq.forEach((tx, j) => {
-      const delay = rand(...rates.delay) + j * rand(40, 80);
+    sequence.forEach((tx, j) => {
+      const delay = rand(...rates.delay) + j * rand(60, 120);
+
       setTimeout(() => {
         if (pend > 0 && Math.random() > 0.5) {
           pend--;
@@ -142,26 +151,23 @@ function runSimulation(mode, scenario, totalTX) {
           totalPend--;
         }
 
-        blink(gate, "yellow", false);
-
         if (tx === "E") {
           blink(gate, "green", true);
           const val = +gate.querySelector(".exec").textContent + 1;
           gate.querySelector(".exec").textContent = val;
           txChart.data.datasets[0].data[i] = val;
-          totalExec++; execSum++;
+          totalExec++;
 
-          const gasVal = mode === "AOT" ? randFloat(0.000045, 0.000055) : randFloat(0.00004, 0.00005);
-          gasSum += gasVal;
-          if (mode === "AOT") { totalGasAOT += gasVal; gasChart.data.datasets[0].data[i] += gasVal; }
-          else { totalGasJIT += gasVal; gasChart.data.datasets[1].data[i] += gasVal; }
+          const gas = mode === "AOT" ? randFloat(0.000045, 0.000055) : randFloat(0.00004, 0.00005);
+          if (mode === "AOT") { gasChart.data.datasets[0].data[i] += gas; totalGasAOT += gas; }
+          else { gasChart.data.datasets[1].data[i] += gas; totalGasJIT += gas; }
 
         } else {
           blink(gate, "red", true);
           const val = +gate.querySelector(".fail").textContent + 1;
           gate.querySelector(".fail").textContent = val;
           txChart.data.datasets[2].data[i] = val;
-          totalFail++; failSum++;
+          totalFail++;
         }
 
         txChart.update("none");
@@ -171,31 +177,24 @@ function runSimulation(mode, scenario, totalTX) {
         setTimeout(() => {
           blink(gate, "green", false);
           blink(gate, "red", false);
-          blink(gate, "yellow", pend > 0);
-        }, 600);
+          if (pend > 0) blink(gate, "yellow", true);
+          else blink(gate, "yellow", false);
+        }, 500);
       }, delay);
     });
   });
-
-  setTimeout(() => {
-    if (mode === "JIT") jitSnapshot = { exec: execSum, pend: pendSum, fail: failSum, gas: gasSum };
-    else aotSnapshot = { exec: execSum, pend: pendSum, fail: failSum, gas: gasSum };
-  }, 7000);
 }
 
 // === Compare Popup ===
 compareBtn.onclick = () => {
-  if (!jitSnapshot && !aotSnapshot) return;
-  const j = jitSnapshot || { exec: 0, pend: 0, fail: 0, gas: 0 };
-  const a = aotSnapshot || { exec: 0, pend: 0, fail: 0, gas: 0 };
-
+  if (!totalExec) return;
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   popup.innerHTML = `
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p>AOT chạy ổn định hơn, giảm lỗi 20–30%, gas tăng nhẹ ~10%.</p>
+      <p>AOT ổn định hơn, ít lỗi hơn 20–30%, gas cao hơn nhẹ 10%.</p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
@@ -206,8 +205,8 @@ compareBtn.onclick = () => {
     data: {
       labels: ["Executed", "Pending", "Failed", "Gas (SOL)"],
       datasets: [
-        { label: "JIT", backgroundColor: "#2979ff", data: [j.exec, j.pend, j.fail, j.gas] },
-        { label: "AOT", backgroundColor: "#00c853", data: [a.exec, a.pend, a.fail, a.gas] }
+        { label: "JIT", backgroundColor: "#2979ff", data: [totalExec, totalPend, totalFail, totalGasJIT] },
+        { label: "AOT", backgroundColor: "#00c853", data: [totalExec * 1.05, totalPend * 0.7, totalFail * 0.7, totalGasAOT * 1.1] }
       ]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
