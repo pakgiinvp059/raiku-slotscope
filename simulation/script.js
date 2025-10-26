@@ -1,4 +1,4 @@
-// === Raiku SlotScope Fixed Simulation ===
+// === Raiku SlotScope — Realistic TX Flow Simulation ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -16,7 +16,7 @@ let cumulative = {
 };
 let running = false;
 
-// === Create 10 Gates ===
+// === GATES ===
 for (let i = 1; i <= 10; i++) {
   const slot = document.createElement("div");
   slot.className = "slot";
@@ -28,149 +28,165 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(slot);
 }
 
-// === Chart Initialization ===
+// === CHARTS ===
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
     type: "line",
     data: {
-      labels: Array.from({length:10}, (_,i)=>`Gate ${i+1}`),
+      labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label:"Executed", borderColor:"#22c55e", data:Array(10).fill(0), tension:0.3, fill:true },
-        { label:"Pending", borderColor:"#facc15", data:Array(10).fill(0), tension:0.3 },
-        { label:"Failed", borderColor:"#ef4444", data:Array(10).fill(0), tension:0.3 }
+        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.1)", data: Array(10).fill(0), fill: true },
+        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.1)", data: Array(10).fill(0), fill: true },
+        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.1)", data: Array(10).fill(0), fill: true }
       ]
     },
-    options:{responsive:true,maintainAspectRatio:false}
+    options: { responsive: true, maintainAspectRatio: false }
   });
 
   const gasCtx = document.getElementById("gasChart").getContext("2d");
   gasChart = new Chart(gasCtx, {
     type: "bar",
     data: {
-      labels: Array.from({length:10}, (_,i)=>`Gate ${i+1}`),
+      labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label:"AOT Gas", backgroundColor:"#00c853", data:Array(10).fill(0) },
-        { label:"JIT Gas", backgroundColor:"#2979ff", data:Array(10).fill(0) }
+        { label: "AOT Gas", backgroundColor: "#00c853", data: Array(10).fill(0) },
+        { label: "JIT Gas", backgroundColor: "#2979ff", data: Array(10).fill(0) }
       ]
     },
-    options:{responsive:true,maintainAspectRatio:false}
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 initCharts();
 
-// === Helpers ===
-const rand = (min,max)=>Math.random()*(max-min)+min;
-function distributeTX(total,gates=10){
-  const base=Math.floor(total/gates);
-  let rem=total%gates;
-  const arr=Array(gates).fill(base);
-  while(rem>0){arr[Math.floor(Math.random()*gates)]++;rem--;}
+// === HELPERS ===
+const rand = (min, max) => Math.random() * (max - min) + min;
+const distributeTX = (total, gates = 10) => {
+  const base = Math.floor(total / gates);
+  let remainder = total % gates;
+  const arr = Array(gates).fill(base);
+  while (remainder > 0) { arr[Math.floor(Math.random() * gates)]++; remainder--; }
   return arr;
-}
-function getRates(scenario,mode){
-  const base={
-    Normal:{exec:0.93,pend:0.05,fail:0.02},
-    HighFee:{exec:0.88,pend:0.09,fail:0.03},
-    Congested:{exec:0.82,pend:0.12,fail:0.06}
-  }[scenario];
-  return mode==="AOT"
-    ?{exec:Math.min(base.exec+0.03,0.99),pend:Math.max(base.pend-0.02,0.01),fail:Math.max(base.fail-0.01,0.005)}
-    :base;
-}
-function gas(mode){return +(mode==="AOT"?rand(0.00004,0.00007):rand(0.00002,0.00004)).toFixed(6);}
-
-// === Reset ===
-resetBtn.onclick=()=>{
-  if(running)return;
-  totalExec=totalPend=totalFail=totalGasAOT=totalGasJIT=0;
-  cumulative={JIT:{exec:0,pend:0,fail:0,gas:0},AOT:{exec:0,pend:0,fail:0,gas:0}};
-  document.querySelectorAll(".exec,.pend,.fail").forEach(el=>el.textContent="0");
-  txChart.data.datasets.forEach(d=>d.data.fill(0));
-  gasChart.data.datasets.forEach(d=>d.data.fill(0));
-  updateStats();txChart.update();gasChart.update();
 };
 
-// === Start Simulation ===
-startBtn.onclick=async()=>{
-  if(running)return;running=true;startBtn.disabled=true;
-  const mode=document.querySelector('input[name="mode"]:checked').value;
-  const scenario=scenarioSelect.value;
-  const totalTX=parseInt(txCountInput.value)||100;
-  const gates=distributeTX(totalTX,10);
-  const rates=getRates(scenario,mode);
-
-  totalPend+=totalTX; cumulative[mode].pend+=totalTX;
-  for(let g=0;g<10;g++){
-    const slot=document.getElementById(`slot-${g+1}`);
-    slot.querySelector(".pend").textContent=gates[g];
-    txChart.data.datasets[1].data[g]=gates[g];
-  }
-  updateStats();txChart.update();
-
-  let processed=0;
-  for(let g=0;g<10;g++){
-    for(let i=0;i<gates[g];i++){
-      setTimeout(()=>{
-        const chance=Math.random();
-        totalPend--; txChart.data.datasets[1].data[g]--;
-        const slot=document.getElementById(`slot-${g+1}`);
-        if(chance<rates.exec){
-          totalExec++; cumulative[mode].exec++;
-          txChart.data.datasets[0].data[g]++;
-          slot.querySelector(".exec").textContent=+slot.querySelector(".exec").textContent+1;
-          const gval=gas(mode);
-          if(mode==="AOT"){totalGasAOT+=gval; cumulative[mode].gas+=gval; gasChart.data.datasets[0].data[g]+=gval;}
-          else{totalGasJIT+=gval; cumulative[mode].gas+=gval; gasChart.data.datasets[1].data[g]+=gval;}
-        }else if(chance<rates.exec+rates.fail){
-          totalFail++; cumulative[mode].fail++;
-          txChart.data.datasets[2].data[g]++;
-          slot.querySelector(".fail").textContent=+slot.querySelector(".fail").textContent+1;
-        }else{
-          totalPend++; // re-pending nhỏ
-        }
-        processed++;
-        if(processed===totalTX){updateStats();txChart.update();gasChart.update();running=false;startBtn.disabled=false;}
-        updateStats();
-      },rand(200,800)*(i/5));
-    }
-  }
-};
-
-// === Update Stats ===
-function updateStats(){
-  document.getElementById("executedVal").textContent=totalExec;
-  document.getElementById("failedVal").textContent=totalFail;
-  document.getElementById("pendingVal").textContent=totalPend;
-  document.getElementById("totalRunVal").textContent=totalExec+totalFail+totalPend;
-  document.getElementById("jitGasVal").textContent=totalGasJIT.toFixed(6);
-  document.getElementById("aotGasVal").textContent=totalGasAOT.toFixed(6);
-  document.getElementById("totalGasVal").textContent=(totalGasAOT+totalGasJIT).toFixed(6);
+function gas(mode) {
+  return +(mode === "AOT" ? rand(0.00005, 0.00008) : rand(0.00003, 0.00005)).toFixed(6);
 }
 
-// === Compare Popup ===
-compareBtn.onclick=()=>{
-  const popup=document.createElement("div");
-  popup.className="popup-compare";
-  popup.innerHTML=`
+function getRates(mode) {
+  let exec = rand(0.6, 0.8);
+  let fail = rand(0.03, 0.08);
+  let pend = 1 - exec - fail;
+  if (mode === "AOT") exec += 0.05;
+  return { exec, pend, fail };
+}
+
+// === RESET ===
+resetBtn.onclick = () => {
+  if (running) return;
+  totalExec = totalPend = totalFail = totalGasAOT = totalGasJIT = 0;
+  cumulative = { JIT: { exec: 0, pend: 0, fail: 0, gas: 0 }, AOT: { exec: 0, pend: 0, fail: 0, gas: 0 } };
+  document.querySelectorAll(".exec,.pend,.fail").forEach(el => el.textContent = "0");
+  txChart.data.datasets.forEach(d => d.data.fill(0));
+  gasChart.data.datasets.forEach(d => d.data.fill(0));
+  updateStats();
+  txChart.update();
+  gasChart.update();
+};
+
+// === START SIMULATION ===
+startBtn.onclick = async () => {
+  if (running) return;
+  running = true;
+  startBtn.disabled = true;
+
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const totalTX = parseInt(txCountInput.value) || 100;
+  const gates = distributeTX(totalTX, 10);
+  const { exec: rExec, pend: rPend, fail: rFail } = getRates(mode);
+
+  totalPend += Math.floor(totalTX * rPend);
+  cumulative[mode].pend += Math.floor(totalTX * rPend);
+
+  for (let g = 0; g < 10; g++) {
+    const slot = document.getElementById(`slot-${g + 1}`);
+    const execCount = Math.round(gates[g] * rExec);
+    const failCount = Math.round(gates[g] * rFail);
+    const pendCount = gates[g] - execCount - failCount;
+
+    slot.querySelector(".exec").textContent = execCount;
+    slot.querySelector(".pend").textContent = pendCount;
+    slot.querySelector(".fail").textContent = failCount;
+
+    txChart.data.datasets[0].data[g] = execCount;
+    txChart.data.datasets[1].data[g] = pendCount;
+    txChart.data.datasets[2].data[g] = failCount;
+
+    totalExec += execCount;
+    totalFail += failCount;
+    totalPend += pendCount;
+
+    cumulative[mode].exec += execCount;
+    cumulative[mode].fail += failCount;
+    cumulative[mode].pend += pendCount;
+
+    const gCost = gas(mode) * execCount;
+    if (mode === "AOT") { totalGasAOT += gCost; cumulative[mode].gas += gCost; gasChart.data.datasets[0].data[g] = gCost; }
+    else { totalGasJIT += gCost; cumulative[mode].gas += gCost; gasChart.data.datasets[1].data[g] = gCost; }
+  }
+
+  // update charts and stats
+  txChart.update();
+  gasChart.update();
+  updateStats();
+
+  // simulate pending resolution gradually (looks real)
+  let interval = setInterval(() => {
+    let reduce = Math.floor(totalPend * 0.15);
+    if (reduce < 1) { clearInterval(interval); running = false; startBtn.disabled = false; return; }
+    totalPend -= reduce;
+    totalExec += reduce;
+    updateStats();
+  }, 1000);
+};
+
+// === UPDATE STATS ===
+function updateStats() {
+  const total = totalExec + totalFail + totalPend;
+  document.getElementById("executedVal").textContent = totalExec;
+  document.getElementById("failedVal").textContent = totalFail;
+  document.getElementById("pendingVal").textContent = totalPend;
+  document.getElementById("totalRunVal").textContent = total;
+  document.getElementById("jitGasVal").textContent = totalGasJIT.toFixed(6);
+  document.getElementById("aotGasVal").textContent = totalGasAOT.toFixed(6);
+  document.getElementById("totalGasVal").textContent = (totalGasAOT + totalGasJIT).toFixed(6);
+}
+
+// === COMPARE ===
+compareBtn.onclick = () => {
+  const popup = document.createElement("div");
+  popup.className = "popup-compare";
+  popup.innerHTML = `
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p>AOT ổn định hơn trong môi trường tắc nghẽn, gas cao hơn nhẹ.</p>
+      <p>AOT ổn định hơn, Pending ít hơn, Gas cao hơn nhẹ.</p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
-  const ctx=document.getElementById("compareChart").getContext("2d");
-  new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels:["Executed","Pending","Failed","Gas (SOL)"],
-      datasets:[
-        {label:"JIT",backgroundColor:"#2979ff",data:[cumulative.JIT.exec,cumulative.JIT.pend,cumulative.JIT.fail,cumulative.JIT.gas]},
-        {label:"AOT",backgroundColor:"#00c853",data:[cumulative.AOT.exec,cumulative.AOT.pend,cumulative.AOT.fail,cumulative.AOT.gas]}
+
+  const ctx = document.getElementById("compareChart").getContext("2d");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Executed", "Pending", "Failed", "Gas (SOL)"],
+      datasets: [
+        { label: "JIT", backgroundColor: "#2979ff", data: [cumulative.JIT.exec, cumulative.JIT.pend, cumulative.JIT.fail, cumulative.JIT.gas] },
+        { label: "AOT", backgroundColor: "#00c853", data: [cumulative.AOT.exec, cumulative.AOT.pend, cumulative.AOT.fail, cumulative.AOT.gas] }
       ]
     },
-    options:{responsive:true,maintainAspectRatio:false}
+    options: { responsive: true, maintainAspectRatio: false }
   });
-  popup.querySelector(".closePopup").onclick=()=>popup.remove();
+
+  popup.querySelector(".closePopup").onclick = () => popup.remove();
 };
