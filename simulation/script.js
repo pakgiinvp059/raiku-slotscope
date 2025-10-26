@@ -1,41 +1,41 @@
-// === Raiku SlotScope — v4.9 Compare Chart Enhanced ===
-// Adds value labels, corrects 3-column data sync, keeps UI identical
+// === Raiku SlotScope v5.1 — Cumulative TX Stable Logic ===
+// Correct behavior: TX chart always cumulative, pending never decreases,
+// AOT generates fewer pending/fails but keeps totals increasing logically.
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
 const compareBtn = document.getElementById("compareBtn");
 const txCountInput = document.getElementById("txCount");
-const scenarioSelect = document.getElementById("scenario");
 
 let txChart, gasChart;
 let totalExec = 0, totalPend = 0, totalFail = 0;
 let totalGasAOT = 0, totalGasJIT = 0;
 let running = false;
 
-// === Stats per mode ===
+// Per mode stats
 let statsByMode = {
   JIT: { total: 0, exec: 0, pend: 0, fail: 0, gas: 0 },
   AOT: { total: 0, exec: 0, pend: 0, fail: 0, gas: 0 }
 };
 
-// === 10 Gates cumulative ===
+// Gate-level accumulators
 let sessionExec = Array(10).fill(0);
 let sessionPend = Array(10).fill(0);
 let sessionFail = Array(10).fill(0);
 let sessionGasAOT = Array(10).fill(0);
 let sessionGasJIT = Array(10).fill(0);
 
-// === UI setup ===
+// === Init UI ===
 for (let i = 1; i <= 10; i++) {
-  const slot = document.createElement("div");
-  slot.className = "slot";
-  slot.id = `slot-${i}`;
-  slot.innerHTML = `
+  const gate = document.createElement("div");
+  gate.className = "slot";
+  gate.id = `slot-${i}`;
+  gate.innerHTML = `
     <b>Gate ${i}</b>
     <div class="dots"><div class="dot green"></div><div class="dot yellow"></div><div class="dot red"></div></div>
     <div><span class="exec">0</span> / <span class="pend">0</span> / <span class="fail">0</span></div>`;
-  slotsContainer.appendChild(slot);
+  slotsContainer.appendChild(gate);
 }
 
 // === Charts ===
@@ -51,7 +51,11 @@ function initCharts() {
         { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.06)", data: [...sessionFail], fill: true }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "top" } }
+    }
   });
 
   const gasCtx = document.getElementById("gasChart").getContext("2d");
@@ -89,11 +93,13 @@ function distribute(total, n = 10) {
   return arr;
 }
 
+// === Deterministic rate per mode ===
 function determineRates(mode) {
-  if (mode === "AOT")
-    return { exec: rand(0.96, 0.985), pend: rand(0.008, 0.015), fail: rand(0.002, 0.008) };
-  else
+  if (mode === "AOT") {
+    return { exec: rand(0.975, 0.992), pend: rand(0.004, 0.01), fail: rand(0.001, 0.004) };
+  } else {
     return { exec: rand(0.88, 0.93), pend: rand(0.05, 0.08), fail: rand(0.02, 0.05) };
+  }
 }
 
 function gasForExec(mode) {
@@ -116,12 +122,12 @@ resetBtn.onclick = () => {
 };
 
 // === Start Simulation ===
-startBtn.onclick = async () => {
+startBtn.onclick = () => {
   if (running) return;
   running = true; startBtn.disabled = true;
 
   const mode = document.querySelector('input[name="mode"]:checked').value;
-  let totalTX = parseInt(txCountInput.value) || 100;
+  const totalTX = parseInt(txCountInput.value) || 1000;
   const rates = determineRates(mode);
   const perGate = distribute(totalTX, 10);
 
@@ -133,7 +139,11 @@ startBtn.onclick = async () => {
     const pend = Math.round(tx * rates.pend);
     const fail = tx - exec - pend;
 
-    sessionExec[i] += exec; sessionPend[i] += pend; sessionFail[i] += fail;
+    // add to cumulative totals
+    sessionExec[i] += exec;
+    sessionPend[i] += pend;
+    sessionFail[i] += fail;
+
     sumExec += exec; sumPend += pend; sumFail += fail;
 
     const gasUsed = gasForExec(mode) * exec;
@@ -146,33 +156,24 @@ startBtn.onclick = async () => {
     slot.querySelector(".fail").textContent = sessionFail[i];
   }
 
-  totalExec += sumExec; totalPend += sumPend; totalFail += sumFail;
+  // totals update
+  totalExec += sumExec;
+  totalPend += sumPend;
+  totalFail += sumFail;
+
   statsByMode[mode].total += totalTX;
   statsByMode[mode].exec += sumExec;
   statsByMode[mode].pend += sumPend;
   statsByMode[mode].fail += sumFail;
 
+  // chart update
   txChart.data.datasets[0].data = [...sessionExec];
   txChart.data.datasets[1].data = [...sessionPend];
   txChart.data.datasets[2].data = [...sessionFail];
   gasChart.data.datasets[0].data = [...sessionGasAOT];
   gasChart.data.datasets[1].data = [...sessionGasJIT];
-  txChart.update(); gasChart.update(); updateStats();
 
-  if (mode === "AOT") {
-    const decay = setInterval(() => {
-      let hasPending = false;
-      for (let i = 0; i < 10; i++) {
-        if (sessionPend[i] > 0) {
-          sessionExec[i]++; sessionPend[i]--;
-          totalExec++; totalPend--;
-          hasPending = true;
-        }
-      }
-      if (!hasPending) clearInterval(decay);
-      txChart.update(); updateStats();
-    }, 800);
-  }
+  txChart.update(); gasChart.update(); updateStats();
 
   running = false; startBtn.disabled = false;
 };
@@ -248,15 +249,9 @@ compareBtn.onclick = () => {
           formatter: val => val.toLocaleString()
         }
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: "TX Count / Avg Gas" }
-        }
-      }
+      scales: { y: { beginAtZero: true, title: { display: true, text: "TX Count / Avg Gas" } } }
     },
     plugins: [ChartDataLabels]
   });
-
   popup.querySelector(".closePopup").onclick = () => popup.remove();
 };
