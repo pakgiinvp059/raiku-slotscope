@@ -1,7 +1,8 @@
-// === Raiku SlotScope — Final Stable Simulation v4.3 ===
-// Natural TX Distribution + Deterministic AOT Fix + Optimized Compare Chart
+// === Raiku SlotScope — Final Stable Simulation v4.4 ===
+// Natural Pending Decay + Perfect Compare Chart
+// Built for Raiku Ideathon — Keep layout 100% identical
 
-// === Element Selectors ===
+// === Selectors ===
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
@@ -72,20 +73,12 @@ initCharts();
 
 // === Helpers ===
 const rand=(min,max)=>Math.random()*(max-min)+min;
-function gaussianRand(){
-  let u=0,v=0;
-  while(u===0)u=Math.random();
-  while(v===0)v=Math.random();
-  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
-}
-
-// === Distribute TX (smooth, total exact) ===
 function distribute(total,n=10){
   const avg=total/n;
   let arr=[],sum=0;
   for(let i=0;i<n;i++){
     const bias=Math.sin((i/n)*Math.PI)*0.08;
-    const jitter=rand(0.90+bias,1.10+bias/2);
+    const jitter=rand(0.9+bias,1.1+bias/2);
     const val=Math.max(1,Math.round(avg*jitter));
     arr.push(val);sum+=val;
   }
@@ -98,14 +91,11 @@ function distribute(total,n=10){
   }
   return arr;
 }
-
-// === Determine Rates (per scenario + mode) ===
 function determineRates(scenario,mode){
   let base;
   if(scenario==="HighFee") base={exec:0.8,pend:0.14,fail:0.06};
   else if(scenario==="Congested") base={exec:0.75,pend:0.18,fail:0.07};
-  else base={exec:0.88,pend:0.09,fail:0.03}; // Normal
-
+  else base={exec:0.88,pend:0.09,fail:0.03};
   if(mode==="AOT"){
     base.exec=Math.min(base.exec+rand(0.06,0.08),0.99);
     base.pend=Math.max(base.pend-rand(0.05,0.07),0.01);
@@ -115,13 +105,10 @@ function determineRates(scenario,mode){
     base.pend=Math.min(base.pend+rand(0.04,0.06),0.22);
     base.fail=Math.min(base.fail+rand(0.03,0.05),0.1);
   }
-
   const sum=base.exec+base.pend+base.fail;
   base.exec/=sum;base.pend/=sum;base.fail/=sum;
   return base;
 }
-
-// === Gas cost (AOT slightly higher) ===
 function gasForExec(mode){
   return +(mode==="AOT"?rand(0.0000408,0.0000510):rand(0.0000400,0.0000500)).toFixed(6);
 }
@@ -161,12 +148,10 @@ startBtn.onclick=()=>{
     const p=Math.max(0,tx-e-f);
     sumExec+=e;sumPend+=p;sumFail+=f;
     sessionExec[i]+=e;sessionPend[i]+=p;sessionFail[i]+=f;
-
     const slot=document.getElementById(`slot-${i+1}`);
     slot.querySelector(".exec").textContent=sessionExec[i];
     slot.querySelector(".pend").textContent=sessionPend[i];
     slot.querySelector(".fail").textContent=sessionFail[i];
-
     const gasUsed=gasForExec(mode)*e;
     if(mode==="AOT"){sessionGasAOT[i]+=gasUsed;totalGasAOT+=gasUsed;cumulative.AOT.gas+=gasUsed;}
     else{sessionGasJIT[i]+=gasUsed;totalGasJIT+=gasUsed;cumulative.JIT.gas+=gasUsed;}
@@ -183,14 +168,24 @@ startBtn.onclick=()=>{
   gasChart.data.datasets[1].data=[...sessionGasJIT];
   txChart.update();gasChart.update();updateStats();
 
-  // === Pending decay (AOT resolves most) ===
-  let tick=0;const decayTicks=6;
+  // === Natural Pending Decay (AOT -> always 0 at end) ===
+  let tick=0;const decayTicks=8;
   const interval=setInterval(()=>{
     tick++;
-    const pendingNow=sessionPend.reduce((a,b)=>a+b,0);
-    if(pendingNow<=0||tick>decayTicks){clearInterval(interval);running=false;startBtn.disabled=false;return;}
+    let pendingNow=sessionPend.reduce((a,b)=>a+b,0);
+    if(pendingNow<=0||tick>decayTicks){
+      // AOT: always resolves all pending
+      if(mode==="AOT"){
+        let rest=sessionPend.reduce((a,b)=>a+b,0);
+        totalExec+=rest;totalPend-=rest;
+        for(let i=0;i<10;i++){
+          sessionExec[i]+=sessionPend[i];sessionPend[i]=0;
+        }
+      }
+      clearInterval(interval);running=false;startBtn.disabled=false;updateStats();txChart.update();return;
+    }
     let convert=Math.ceil(pendingNow/(decayTicks-tick+1));
-    if(mode==="AOT") convert*=1.5;
+    if(mode==="AOT") convert*=1.6;
     for(let i=0;i<10;i++){
       const take=Math.min(sessionPend[i],Math.round(convert*(sessionPend[i]/pendingNow)));
       if(take<=0)continue;
@@ -230,7 +225,7 @@ compareBtn.onclick=()=>{
     <div class="popup-inner">
       <strong>📊 JIT vs AOT Comparison</strong>
       <canvas id="compareChart"></canvas>
-      <p style="margin-top:8px;font-size:13px">Số liệu cộng dồn (mỗi lần bạn bấm Start). Reset sẽ xóa.</p>
+      <p style="margin-top:8px;font-size:13px">Số liệu cộng dồn (Executed, Pending, Failed, Gas). Reset sẽ xóa.</p>
       <button class="closePopup">OK</button>
     </div>`;
   document.body.appendChild(popup);
