@@ -1,6 +1,5 @@
-// === Raiku SlotScope — Final Stable Simulation v4.2 ===
-// Natural TX Distribution + Deterministic AOT Fix
-// (built for Raiku Inevitable Ideathon demo)
+// === Raiku SlotScope — Final Stable Simulation v4.3 ===
+// Natural TX Distribution + Deterministic AOT Fix + Optimized Compare Chart
 
 // === Element Selectors ===
 const slotsContainer = document.getElementById("slots");
@@ -240,17 +239,65 @@ compareBtn.onclick=()=>{
   new Chart(ctx,{
     type:"bar",
     data:{
-      labels:["Executed","Pending","Failed","Avg Gas (SOL)"],
+      labels:["Executed","Pending","Failed","Avg Gas (x10⁴ SOL)"],
       datasets:[
-        {label:"JIT",backgroundColor:"#2979ff",data:[
-          cumulative.JIT.exec,cumulative.JIT.pend,cumulative.JIT.fail,
-          cumulative.JIT.exec?+(cumulative.JIT.gas/cumulative.JIT.exec).toFixed(6):0]},
-        {label:"AOT",backgroundColor:"#00c853",data:[
-          cumulative.AOT.exec,cumulative.AOT.pend,cumulative.AOT.fail,
-          cumulative.AOT.exec?+(cumulative.AOT.gas/cumulative.AOT.exec).toFixed(6):0]}
+        {
+          label:"JIT",
+          backgroundColor:"#2979ff",
+          data:[
+            cumulative.JIT.exec,
+            cumulative.JIT.pend,
+            cumulative.JIT.fail,
+            cumulative.JIT.exec?+(cumulative.JIT.gas/cumulative.JIT.exec*10000).toFixed(3):0
+          ]
+        },
+        {
+          label:"AOT",
+          backgroundColor:"#00c853",
+          data:[
+            cumulative.AOT.exec,
+            cumulative.AOT.pend,
+            cumulative.AOT.fail,
+            cumulative.AOT.exec?+(cumulative.AOT.gas/cumulative.AOT.exec*10000).toFixed(3):0
+          ]
+        }
       ]
     },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}}}
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{position:"top",labels:{font:{size:13}}},
+        tooltip:{
+          callbacks:{
+            label:(ctx)=>{
+              if(ctx.label.includes("Gas"))
+                return `${ctx.dataset.label}: ${(ctx.parsed.y/10000).toFixed(6)} SOL`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y}`;
+            }
+          }
+        },
+        datalabels:{
+          anchor:"end",
+          align:"top",
+          font:{size:12,weight:"600"},
+          color:"#111",
+          formatter:(val,ctx)=>{
+            if(ctx.chart.data.labels[ctx.dataIndex].includes("Gas"))
+              return (val/10000).toFixed(5);
+            return val;
+          }
+        }
+      },
+      scales:{
+        y:{
+          beginAtZero:true,
+          title:{display:true,text:"TX Count / Avg Gas",font:{size:12}},
+          suggestedMax:Math.max(cumulative.JIT.exec,cumulative.AOT.exec)*1.1
+        }
+      }
+    },
+    plugins:[ChartDataLabels]
   });
   popup.querySelector(".closePopup").onclick=()=>popup.remove();
 };
