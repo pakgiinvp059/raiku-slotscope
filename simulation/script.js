@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.4 — Final Polished Version ===
+// === Raiku SlotScope v7.6 — Accumulative Gates + Fixed Compare Charts ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -29,7 +29,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(slot);
 }
 
-// Animation for active slots
+// === Pulse animation ===
 const style = document.createElement("style");
 style.innerHTML = `
 @keyframes pulse {
@@ -41,7 +41,7 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// Charts
+// === Init Charts ===
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -49,9 +49,9 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.08)", data: Array(10).fill(0), fill: true },
-        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.06)", data: Array(10).fill(0), fill: true },
-        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.06)", data: Array(10).fill(0), fill: true }
+        { label: "Executed (Cumulative)", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.08)", data: Array(10).fill(0), fill: true },
+        { label: "Pending (Cumulative)", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.06)", data: Array(10).fill(0), fill: true },
+        { label: "Failed (Cumulative)", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.06)", data: Array(10).fill(0), fill: true }
       ]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
@@ -72,7 +72,7 @@ function initCharts() {
 }
 initCharts();
 
-// Helpers
+// === Helpers ===
 const rand = (min, max) => Math.random() * (max - min) + min;
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 const randomNoise = (n) => Math.max(1, n + randInt(-2, 2));
@@ -104,10 +104,10 @@ function gasForExec(mode) {
   return +(mode === "AOT" ? rand(0.000041, 0.000050) : rand(0.000039, 0.000048)).toFixed(6);
 }
 
-// Reset
+// === Reset ===
 resetBtn.onclick = () => location.reload();
 
-// Simulation
+// === Simulation ===
 startBtn.onclick = async () => {
   if (running) return;
   running = true;
@@ -120,6 +120,7 @@ startBtn.onclick = async () => {
 
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
+
   let executedSum = 0, pendingSum = 0, failSum = 0;
 
   for (let i = 0; i < 10; i++) {
@@ -135,29 +136,33 @@ startBtn.onclick = async () => {
     let f = tx - e - p;
     if (f < 0) f = 0;
 
-    executedSum += e; pendingSum += p; failSum += f;
-    slot.querySelector(".exec").textContent = e;
-    slot.querySelector(".pend").textContent = p;
-    slot.querySelector(".fail").textContent = f;
+    executedSum += e;
+    pendingSum += p;
+    failSum += f;
 
-    txChart.data.datasets[0].data[i] = e;
-    txChart.data.datasets[1].data[i] = p;
-    txChart.data.datasets[2].data[i] = f;
+    // cập nhật Gate & biểu đồ cộng dồn
+    slot.querySelector(".exec").textContent = executedSum;
+    slot.querySelector(".pend").textContent = pendingSum;
+    slot.querySelector(".fail").textContent = failSum;
+
+    txChart.data.datasets[0].data[i] = executedSum;
+    txChart.data.datasets[1].data[i] = pendingSum;
+    txChart.data.datasets[2].data[i] = failSum;
 
     const gasPer = gasForExec(mode);
     const totalGas = +(gasPer * e).toFixed(6);
 
     if (mode === "AOT") {
-      gasChart.data.datasets[0].data[i] += totalGas;
+      gasChart.data.datasets[0].data[i] = totalGasAOT + totalGas;
       totalGasAOT += totalGas;
       cumulative.AOT.exec += e; cumulative.AOT.pend += p; cumulative.AOT.fail += f; cumulative.AOT.gas += totalGas;
     } else {
-      gasChart.data.datasets[1].data[i] += totalGas;
+      gasChart.data.datasets[1].data[i] = totalGasJIT + totalGas;
       totalGasJIT += totalGas;
       cumulative.JIT.exec += e; cumulative.JIT.pend += p; cumulative.JIT.fail += f; cumulative.JIT.gas += totalGas;
     }
 
-    totalExec += e; totalPend += p; totalFail += f;
+    totalExec = executedSum; totalPend = pendingSum; totalFail = failSum;
     txChart.update(); gasChart.update(); updateStats();
     slot.classList.remove("active");
   }
@@ -166,7 +171,7 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// Compare Popup
+// === Compare Popup ===
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
 
@@ -180,22 +185,22 @@ compareBtn.onclick = () => {
     <div class="popup-inner">
       <div class="popup-header">
         <h3>📊 AOT vs JIT Performance Overview</h3>
-        <p>Compare deterministic execution efficiency between AOT and JIT modes</p>
+        <p>Deterministic Execution Impact Summary</p>
       </div>
-      <div class="compare-row">
+      <div class="compare-row" style="height:220px;">
         <div class="compare-chart">
           <strong>Transaction Breakdown</strong>
-          <canvas id="compareChart" height="240"></canvas>
+          <canvas id="compareChart"></canvas>
         </div>
         <div class="compare-chart">
           <strong>Gas Consumption</strong>
-          <canvas id="gasCompare" height="240"></canvas>
+          <canvas id="gasCompare"></canvas>
         </div>
       </div>
       <div class="summary-box">
         ✅ <b>AOT executed</b> ${execDiff}% more transactions<br>
         💧 <b>Gas saved</b> ${gasDiff}% compared to JIT<br>
-        ⚠️ <b>Failures reduced</b> by ${failDiff}% with deterministic scheduling
+        ⚠️ <b>Failures reduced</b> by ${failDiff}% through deterministic scheduling
       </div>
       <button class="closePopup">✖ Close</button>
     </div>`;
@@ -212,7 +217,7 @@ compareBtn.onclick = () => {
         { label: "JIT", backgroundColor: "#2979ff", data: [cumulative.JIT.exec, cumulative.JIT.pend, cumulative.JIT.fail] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: "top" } } }
   });
 
   const ctx2 = document.getElementById("gasCompare").getContext("2d");
@@ -224,11 +229,11 @@ compareBtn.onclick = () => {
         { label: "Gas Used (SOL)", backgroundColor: ["#00c853", "#2979ff"], data: [cumulative.AOT.gas, cumulative.JIT.gas] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: { responsive: true, maintainAspectRatio: true }
   });
 };
 
-// Update Stats
+// === Update Stats ===
 function updateStats() {
   document.getElementById("totalRunVal").textContent = totalExec + totalPend + totalFail;
   document.getElementById("executedVal").textContent = totalExec;
