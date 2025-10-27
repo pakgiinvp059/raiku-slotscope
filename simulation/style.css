@@ -12,10 +12,18 @@ header {
   text-align: center;
   padding: 18px 0 14px 0;
 }
-header h1 { font-size: 30px; margin: 0; font-weight: 600; }
-header p { font-size: 16px; margin: 4px 0 0 0; opacity: 0.9; }
+header h1 {
+  font-size: 30px;
+  font-weight: 600;
+  margin: 0;
+}
+header p {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 4px 0 0 0;
+}
 
-/* CONTROLS */
+/* CONTROL BAR */
 .controls {
   display: flex;
   align-items: center;
@@ -31,13 +39,14 @@ header p { font-size: 16px; margin: 4px 0 0 0; opacity: 0.9; }
   border-radius: 6px;
   padding: 6px 12px;
   cursor: pointer;
+  font-size: 14px;
 }
 .controls button:hover { background: #005fd1; }
 .controls input[type="number"] {
-  width: 60px;
-  border: 1px solid #cfd9e3;
+  width: 70px;
+  padding: 4px 6px;
   border-radius: 4px;
-  padding: 2px 4px;
+  border: 1px solid #cfd9e3;
 }
 
 /* SLOTS */
@@ -57,22 +66,12 @@ header p { font-size: 16px; margin: 4px 0 0 0; opacity: 0.9; }
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   padding: 8px;
   font-size: 13px;
-  transition: background 0.3s;
 }
 .dots { display:flex; justify-content:center; gap:5px; margin-bottom:5px; }
-.dot { width:10px; height:10px; border-radius:50%; opacity:0.6; transition:opacity 0.2s; }
+.dot { width:10px; height:10px; border-radius:50%; }
 .green { background:#22c55e; }
 .yellow { background:#facc15; }
 .red { background:#ef4444; }
-
-/* Flash Animations */
-@keyframes blink-yellow { 50% { opacity: 1; } 100% { opacity: 0.4; } }
-@keyframes blink-green { 50% { opacity: 0.2; } 100% { opacity: 1; } }
-@keyframes blink-red { 50% { opacity: 1; } 100% { opacity: 0.4; } }
-
-.blink-yellow { animation: blink-yellow 0.7s infinite; }
-.blink-green { animation: blink-green 0.4s infinite; }
-.blink-red { animation: blink-red 0.3s infinite; }
 
 /* BLUEPRINT */
 .panel.blueprint {
@@ -97,6 +96,7 @@ header p { font-size: 16px; margin: 4px 0 0 0; opacity: 0.9; }
   background: #f9fbff;
   border-radius: 6px;
   padding: 8px;
+  min-width: 120px;
   font-size: 13px;
   box-shadow: inset 0 0 4px #e8eef5;
 }
@@ -135,7 +135,7 @@ header p { font-size: 16px; margin: 4px 0 0 0; opacity: 0.9; }
 }
 .stat span { font-weight: bold; color: #007aff; }
 
-/* POPUP */
+/* POPUP COMPARE */
 .popup-compare {
   position: fixed;
   top: 50%;
@@ -145,23 +145,39 @@ header p { font-size: 16px; margin: 4px 0 0 0; opacity: 0.9; }
   border-radius: 10px;
   box-shadow: 0 4px 25px rgba(0,0,0,0.2);
   z-index: 2000;
-  animation: fadeInUp 0.3s ease-out;
-  width: 560px;
-  height: 420px;
-  padding: 16px;
+  animation: fadeInUp 0.2s ease-out;
+  width: 640px;
+  max-width: 95%;
+  padding: 12px;
 }
 @keyframes fadeInUp {
   from { transform: translate(-50%, -40%); opacity: 0; }
   to { transform: translate(-50%, -50%); opacity: 1; }
 }
 .popup-inner { text-align: center; }
-.popup-inner canvas { width: 100%; height: 240px !important; }
+.popup-inner canvas {
+  width: 100%;
+  height: 260px !important;
+}
+.popup-inner strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  color: #111;
+}
+.popup-inner p {
+  font-size: 13px;
+  margin: 6px 0;
+  color: #333;
+  line-height: 1.3;
+}
 .closePopup {
-  margin-top: 10px;
+  margin-top: 8px;
   background: #007aff;
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 5px 14px;
+  padding: 6px 14px;
   cursor: pointer;
 }
+.closePopup:hover { background: #005fcb; }
