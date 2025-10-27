@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.4.1-Cumulative — Gate Adds Up TX Over Multiple Runs ===
+// === Raiku SlotScope v7.4.1-Final — Cumulative + Gas Diff Display ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -107,7 +107,7 @@ function gasForExec(mode) {
 // === Reset ===
 resetBtn.onclick = () => location.reload();
 
-// === Simulation (Gate cumulative update) ===
+// === Simulation (Gate cumulative) ===
 startBtn.onclick = async () => {
   if (running) return;
   running = true;
@@ -139,7 +139,7 @@ startBtn.onclick = async () => {
     pendingSum += p;
     failSum += f;
 
-    // ✅ cộng dồn vào gate (thay vì ghi đè)
+    // ✅ cộng dồn vào gate
     const prevE = parseInt(slot.querySelector(".exec").textContent);
     const prevP = parseInt(slot.querySelector(".pend").textContent);
     const prevF = parseInt(slot.querySelector(".fail").textContent);
@@ -152,7 +152,6 @@ startBtn.onclick = async () => {
     slot.querySelector(".pend").textContent = newP;
     slot.querySelector(".fail").textContent = newF;
 
-    // cập nhật biểu đồ
     txChart.data.datasets[0].data[i] = newE;
     txChart.data.datasets[1].data[i] = newP;
     txChart.data.datasets[2].data[i] = newF;
@@ -179,14 +178,16 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// === Compare Popup (giữ nguyên) ===
+// === Compare Popup (gas diff text updated) ===
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
   const popup = document.createElement("div");
   popup.className = "popup-compare";
+
   const execDiff = ((cumulative.AOT.exec - cumulative.JIT.exec) / cumulative.JIT.exec * 100).toFixed(1);
-  const gasDiff = ((cumulative.JIT.gas - cumulative.AOT.gas) / cumulative.JIT.gas * 100).toFixed(1);
+  const gasDiffValue = (cumulative.AOT.gas - cumulative.JIT.gas).toFixed(6);
   const failDiff = ((cumulative.JIT.fail - cumulative.AOT.fail) / cumulative.JIT.fail * 100).toFixed(1);
+
   popup.innerHTML = `
     <div class="popup-inner" style="overflow:hidden;">
       <div class="popup-header">
@@ -205,7 +206,7 @@ compareBtn.onclick = () => {
       </div>
       <div class="summary-box">
         ✅ <b>AOT executed</b> ${execDiff}% more transactions<br>
-        💧 <b>Gas saved</b> ${gasDiff}% compared to JIT<br>
+        💧 <b>Phí gas của AOT so với JIT là:</b> ${gasDiffValue} SOL<br>
         ⚠️ <b>Failures reduced</b> by ${failDiff}% with deterministic scheduling
       </div>
       <button class="closePopup">✖ Close</button>
