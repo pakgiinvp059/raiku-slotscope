@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.6 — Accumulative Gates + Fixed Compare Charts ===
+// === Raiku SlotScope v7.7 — Final Stable Version ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -29,7 +29,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(slot);
 }
 
-// === Pulse animation ===
+// === Animation ===
 const style = document.createElement("style");
 style.innerHTML = `
 @keyframes pulse {
@@ -41,7 +41,7 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// === Init Charts ===
+// === Charts ===
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -49,9 +49,9 @@ function initCharts() {
     data: {
       labels: Array.from({ length: 10 }, (_, i) => `Gate ${i + 1}`),
       datasets: [
-        { label: "Executed (Cumulative)", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.08)", data: Array(10).fill(0), fill: true },
-        { label: "Pending (Cumulative)", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.06)", data: Array(10).fill(0), fill: true },
-        { label: "Failed (Cumulative)", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.06)", data: Array(10).fill(0), fill: true }
+        { label: "Executed", borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.08)", data: Array(10).fill(0), fill: true },
+        { label: "Pending", borderColor: "#facc15", backgroundColor: "rgba(250,204,21,0.06)", data: Array(10).fill(0), fill: true },
+        { label: "Failed", borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.06)", data: Array(10).fill(0), fill: true }
       ]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
@@ -121,7 +121,8 @@ startBtn.onclick = async () => {
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
 
-  let executedSum = 0, pendingSum = 0, failSum = 0;
+  totalExec = totalPend = totalFail = 0;
+  totalGasAOT = totalGasJIT = 0;
 
   for (let i = 0; i < 10; i++) {
     const slot = document.getElementById(`slot-${i + 1}`);
@@ -129,41 +130,41 @@ startBtn.onclick = async () => {
     await new Promise(r => setTimeout(r, 300));
 
     let tx = randomNoise(perGate[i]);
-    if (i === 9) tx = totalTX - (executedSum + pendingSum + failSum);
+    if (i === 9) tx = totalTX - (totalExec + totalPend + totalFail);
 
     let e = Math.round(tx * rates.exec);
     let p = Math.round(tx * rates.pend);
     let f = tx - e - p;
     if (f < 0) f = 0;
 
-    executedSum += e;
-    pendingSum += p;
-    failSum += f;
+    slot.querySelector(".exec").textContent = e;
+    slot.querySelector(".pend").textContent = p;
+    slot.querySelector(".fail").textContent = f;
 
-    // cập nhật Gate & biểu đồ cộng dồn
-    slot.querySelector(".exec").textContent = executedSum;
-    slot.querySelector(".pend").textContent = pendingSum;
-    slot.querySelector(".fail").textContent = failSum;
-
-    txChart.data.datasets[0].data[i] = executedSum;
-    txChart.data.datasets[1].data[i] = pendingSum;
-    txChart.data.datasets[2].data[i] = failSum;
+    txChart.data.datasets[0].data[i] = e;
+    txChart.data.datasets[1].data[i] = p;
+    txChart.data.datasets[2].data[i] = f;
 
     const gasPer = gasForExec(mode);
     const totalGas = +(gasPer * e).toFixed(6);
 
     if (mode === "AOT") {
-      gasChart.data.datasets[0].data[i] = totalGasAOT + totalGas;
+      gasChart.data.datasets[0].data[i] = totalGas;
       totalGasAOT += totalGas;
       cumulative.AOT.exec += e; cumulative.AOT.pend += p; cumulative.AOT.fail += f; cumulative.AOT.gas += totalGas;
     } else {
-      gasChart.data.datasets[1].data[i] = totalGasJIT + totalGas;
+      gasChart.data.datasets[1].data[i] = totalGas;
       totalGasJIT += totalGas;
       cumulative.JIT.exec += e; cumulative.JIT.pend += p; cumulative.JIT.fail += f; cumulative.JIT.gas += totalGas;
     }
 
-    totalExec = executedSum; totalPend = pendingSum; totalFail = failSum;
-    txChart.update(); gasChart.update(); updateStats();
+    totalExec += e;
+    totalPend += p;
+    totalFail += f;
+
+    txChart.update();
+    gasChart.update();
+    updateStats();
     slot.classList.remove("active");
   }
 
