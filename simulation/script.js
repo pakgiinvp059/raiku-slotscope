@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.4.1 — Fixed Compare Chart Frame ===
+// === Raiku SlotScope v7.4.2 — Cumulative Gate Runs ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -29,7 +29,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(slot);
 }
 
-// === Animation ===
+// Animation
 const style = document.createElement("style");
 style.innerHTML = `
 @keyframes pulse {
@@ -41,7 +41,7 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// === Charts ===
+// Charts
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -72,7 +72,7 @@ function initCharts() {
 }
 initCharts();
 
-// === Helpers ===
+// Helpers
 const rand = (min, max) => Math.random() * (max - min) + min;
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 const randomNoise = (n) => Math.max(1, n + randInt(-2, 2));
@@ -104,10 +104,10 @@ function gasForExec(mode) {
   return +(mode === "AOT" ? rand(0.000041, 0.000050) : rand(0.000039, 0.000048)).toFixed(6);
 }
 
-// === Reset ===
+// Reset
 resetBtn.onclick = () => location.reload();
 
-// === Simulation ===
+// Simulation
 startBtn.onclick = async () => {
   if (running) return;
   running = true;
@@ -120,7 +120,6 @@ startBtn.onclick = async () => {
 
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
-  let executedSum = 0, pendingSum = 0, failSum = 0;
 
   for (let i = 0; i < 10; i++) {
     const slot = document.getElementById(`slot-${i + 1}`);
@@ -128,14 +127,17 @@ startBtn.onclick = async () => {
     await new Promise(r => setTimeout(r, 300));
 
     let tx = randomNoise(perGate[i]);
-    if (i === 9) tx = totalTX - (executedSum + pendingSum + failSum);
-
     let e = Math.round(tx * rates.exec);
     let p = Math.round(tx * rates.pend);
     let f = tx - e - p;
     if (f < 0) f = 0;
 
-    executedSum += e; pendingSum += p; failSum += f;
+    // cộng dồn dữ liệu gate
+    const prevE = parseInt(slot.querySelector(".exec").textContent);
+    const prevP = parseInt(slot.querySelector(".pend").textContent);
+    const prevF = parseInt(slot.querySelector(".fail").textContent);
+    e += prevE; p += prevP; f += prevF;
+
     slot.querySelector(".exec").textContent = e;
     slot.querySelector(".pend").textContent = p;
     slot.querySelector(".fail").textContent = f;
@@ -145,20 +147,31 @@ startBtn.onclick = async () => {
     txChart.data.datasets[2].data[i] = f;
 
     const gasPer = gasForExec(mode);
-    const totalGas = +(gasPer * e).toFixed(6);
+    const totalGas = +(gasPer * (e - prevE)).toFixed(6);
 
     if (mode === "AOT") {
       gasChart.data.datasets[0].data[i] += totalGas;
       totalGasAOT += totalGas;
-      cumulative.AOT.exec += e; cumulative.AOT.pend += p; cumulative.AOT.fail += f; cumulative.AOT.gas += totalGas;
+      cumulative.AOT.exec += (e - prevE);
+      cumulative.AOT.pend += (p - prevP);
+      cumulative.AOT.fail += (f - prevF);
+      cumulative.AOT.gas += totalGas;
     } else {
       gasChart.data.datasets[1].data[i] += totalGas;
       totalGasJIT += totalGas;
-      cumulative.JIT.exec += e; cumulative.JIT.pend += p; cumulative.JIT.fail += f; cumulative.JIT.gas += totalGas;
+      cumulative.JIT.exec += (e - prevE);
+      cumulative.JIT.pend += (p - prevP);
+      cumulative.JIT.fail += (f - prevF);
+      cumulative.JIT.gas += totalGas;
     }
 
-    totalExec += e; totalPend += p; totalFail += f;
-    txChart.update(); gasChart.update(); updateStats();
+    totalExec += (e - prevE);
+    totalPend += (p - prevP);
+    totalFail += (f - prevF);
+
+    txChart.update();
+    gasChart.update();
+    updateStats();
     slot.classList.remove("active");
   }
 
@@ -166,18 +179,16 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// === Compare Popup (fixed chart size) ===
+// Compare Popup
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
-
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   const execDiff = ((cumulative.AOT.exec - cumulative.JIT.exec) / cumulative.JIT.exec * 100).toFixed(1);
   const gasDiff = ((cumulative.JIT.gas - cumulative.AOT.gas) / cumulative.JIT.gas * 100).toFixed(1);
   const failDiff = ((cumulative.JIT.fail - cumulative.AOT.fail) / cumulative.JIT.fail * 100).toFixed(1);
-
   popup.innerHTML = `
-    <div class="popup-inner" style="overflow:hidden;">
+    <div class="popup-inner">
       <div class="popup-header">
         <h3>📊 AOT vs JIT Performance Overview</h3>
         <p>Compare deterministic execution efficiency between AOT and JIT modes</p>
@@ -212,12 +223,7 @@ compareBtn.onclick = () => {
         { label: "JIT", backgroundColor: "#2979ff", data: [cumulative.JIT.exec, cumulative.JIT.pend, cumulative.JIT.fail] }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { position: "top" } },
-      animation: false
-    }
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: "top" } } }
   });
 
   const ctx2 = document.getElementById("gasCompare").getContext("2d");
@@ -229,15 +235,11 @@ compareBtn.onclick = () => {
         { label: "Gas Used (SOL)", backgroundColor: ["#00c853", "#2979ff"], data: [cumulative.AOT.gas, cumulative.JIT.gas] }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      animation: false
-    }
+    options: { responsive: true, maintainAspectRatio: true }
   });
 };
 
-// === Update Stats ===
+// Update Stats
 function updateStats() {
   document.getElementById("totalRunVal").textContent = totalExec + totalPend + totalFail;
   document.getElementById("executedVal").textContent = totalExec;
