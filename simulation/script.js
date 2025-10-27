@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.3 — Deterministic Execution Simulation (Accurate Totals) ===
+// === Raiku SlotScope v7.4 — Final Polished Version ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -29,7 +29,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(slot);
 }
 
-// === Animation class for active gates ===
+// Animation for active slots
 const style = document.createElement("style");
 style.innerHTML = `
 @keyframes pulse {
@@ -41,7 +41,7 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
-// === Charts ===
+// Charts
 function initCharts() {
   const txCtx = document.getElementById("txChart").getContext("2d");
   txChart = new Chart(txCtx, {
@@ -67,15 +67,15 @@ function initCharts() {
         { label: "JIT Gas", backgroundColor: "#2979ff", data: Array(10).fill(0) }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => parseFloat(v).toFixed(6) } } } }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 }
 initCharts();
 
-// === Helpers ===
+// Helpers
 const rand = (min, max) => Math.random() * (max - min) + min;
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
-const randomNoise = (n) => Math.max(1, n + randInt(-2, 2)); // ±2 TX, không nhỏ hơn 1
+const randomNoise = (n) => Math.max(1, n + randInt(-2, 2));
 
 function distribute(total, n = 10) {
   const base = Math.floor(total / n);
@@ -92,37 +92,22 @@ function determineRates(scenario, mode) {
   else base = { exec: 0.93, pend: 0.05, fail: 0.02 };
 
   if (mode === "AOT") {
-    base.exec = Math.min(base.exec + 0.05, 0.99);
-    base.pend = Math.max(base.pend * 0.5, 0.005);
-    base.fail = Math.max(base.fail * 0.6, 0.002);
+    base.exec += 0.05; base.pend *= 0.5; base.fail *= 0.6;
   } else {
-    base.exec = Math.max(base.exec - 0.02, 0.7);
-    base.pend = base.pend * 1.25;
-    base.fail = base.fail * 1.5;
+    base.exec -= 0.02; base.pend *= 1.25; base.fail *= 1.5;
   }
   const sum = base.exec + base.pend + base.fail;
-  return { exec: base.exec / sum, pend: base.pend / sum, fail: base.fail / sum };
+  return { exec: base.exec/sum, pend: base.pend/sum, fail: base.fail/sum };
 }
 
 function gasForExec(mode) {
   return +(mode === "AOT" ? rand(0.000041, 0.000050) : rand(0.000039, 0.000048)).toFixed(6);
 }
 
-// === Reset ===
-resetBtn.onclick = () => {
-  if (running) return;
-  totalExec = totalPend = totalFail = 0;
-  totalGasAOT = totalGasJIT = 0;
-  cumulative = { JIT: { exec: 0, pend: 0, fail: 0, gas: 0 }, AOT: { exec: 0, pend: 0, fail: 0, gas: 0 } };
-  document.querySelectorAll(".exec,.pend,.fail").forEach(el => el.textContent = "0");
-  txChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
-  gasChart.data.datasets.forEach(ds => ds.data = Array(10).fill(0));
-  txChart.update(); gasChart.update();
-  updateStats();
-  document.querySelectorAll(".popup-compare").forEach(p => p.remove());
-};
+// Reset
+resetBtn.onclick = () => location.reload();
 
-// === Simulation ===
+// Simulation
 startBtn.onclick = async () => {
   if (running) return;
   running = true;
@@ -135,35 +120,22 @@ startBtn.onclick = async () => {
 
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
-
   let executedSum = 0, pendingSum = 0, failSum = 0;
 
   for (let i = 0; i < 10; i++) {
     const slot = document.getElementById(`slot-${i + 1}`);
     slot.classList.add("active");
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(r => setTimeout(r, 300));
 
     let tx = randomNoise(perGate[i]);
-    if (i === 9) tx = totalTX - (executedSum + pendingSum + failSum); // slot cuối bù tổng
+    if (i === 9) tx = totalTX - (executedSum + pendingSum + failSum);
 
     let e = Math.round(tx * rates.exec);
     let p = Math.round(tx * rates.pend);
     let f = tx - e - p;
     if (f < 0) f = 0;
 
-    // Nếu gần slot cuối và tổng bị lệch, điều chỉnh lại
-    if (i === 9) {
-      const totalCheck = executedSum + pendingSum + failSum + e + p + f;
-      if (totalCheck !== totalTX) {
-        const diff = totalTX - totalCheck;
-        e += diff; // bù sai số vào executed
-      }
-    }
-
-    executedSum += e;
-    pendingSum += p;
-    failSum += f;
-
+    executedSum += e; pendingSum += p; failSum += f;
     slot.querySelector(".exec").textContent = e;
     slot.querySelector(".pend").textContent = p;
     slot.querySelector(".fail").textContent = f;
@@ -194,18 +166,38 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// === Compare Popup ===
+// Compare Popup
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
 
   const popup = document.createElement("div");
   popup.className = "popup-compare";
+  const execDiff = ((cumulative.AOT.exec - cumulative.JIT.exec) / cumulative.JIT.exec * 100).toFixed(1);
+  const gasDiff = ((cumulative.JIT.gas - cumulative.AOT.gas) / cumulative.JIT.gas * 100).toFixed(1);
+  const failDiff = ((cumulative.JIT.fail - cumulative.AOT.fail) / cumulative.JIT.fail * 100).toFixed(1);
+
   popup.innerHTML = `
     <div class="popup-inner">
-      <strong>📊 AOT vs JIT Comparison</strong>
-      <canvas id="compareChart" height="220"></canvas>
-      <canvas id="gasCompare" height="220"></canvas>
-      <button class="closePopup">Close</button>
+      <div class="popup-header">
+        <h3>📊 AOT vs JIT Performance Overview</h3>
+        <p>Compare deterministic execution efficiency between AOT and JIT modes</p>
+      </div>
+      <div class="compare-row">
+        <div class="compare-chart">
+          <strong>Transaction Breakdown</strong>
+          <canvas id="compareChart" height="240"></canvas>
+        </div>
+        <div class="compare-chart">
+          <strong>Gas Consumption</strong>
+          <canvas id="gasCompare" height="240"></canvas>
+        </div>
+      </div>
+      <div class="summary-box">
+        ✅ <b>AOT executed</b> ${execDiff}% more transactions<br>
+        💧 <b>Gas saved</b> ${gasDiff}% compared to JIT<br>
+        ⚠️ <b>Failures reduced</b> by ${failDiff}% with deterministic scheduling
+      </div>
+      <button class="closePopup">✖ Close</button>
     </div>`;
   document.body.appendChild(popup);
   popup.querySelector(".closePopup").onclick = () => popup.remove();
@@ -232,11 +224,11 @@ compareBtn.onclick = () => {
         { label: "Gas Used (SOL)", backgroundColor: ["#00c853", "#2979ff"], data: [cumulative.AOT.gas, cumulative.JIT.gas] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: v => v.toFixed(6) } } } }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 };
 
-// === Update Stats ===
+// Update Stats
 function updateStats() {
   document.getElementById("totalRunVal").textContent = totalExec + totalPend + totalFail;
   document.getElementById("executedVal").textContent = totalExec;
