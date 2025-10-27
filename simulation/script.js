@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.0 — Deterministic Execution Simulation (Enhanced realism) ===
+// === Raiku SlotScope v7.3 — Deterministic Execution Simulation (Accurate Totals) ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -13,7 +13,7 @@ let totalGasAOT = 0, totalGasJIT = 0;
 let cumulative = { JIT: { exec:0, pend:0, fail:0, gas:0 }, AOT: { exec:0, pend:0, fail:0, gas:0 } };
 let running = false;
 
-// === Khởi tạo 10 Gate ===
+// === Init 10 Gates ===
 for (let i = 1; i <= 10; i++) {
   const slot = document.createElement("div");
   slot.className = "slot";
@@ -29,7 +29,7 @@ for (let i = 1; i <= 10; i++) {
   slotsContainer.appendChild(slot);
 }
 
-// === Thêm animation class vào CSS runtime ===
+// === Animation class for active gates ===
 const style = document.createElement("style");
 style.innerHTML = `
 @keyframes pulse {
@@ -75,7 +75,7 @@ initCharts();
 // === Helpers ===
 const rand = (min, max) => Math.random() * (max - min) + min;
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
-const randomNoise = (n) => n + randInt(-2, 2); // lệch nhẹ 1-2 TX
+const randomNoise = (n) => Math.max(1, n + randInt(-2, 2)); // ±2 TX, không nhỏ hơn 1
 
 function distribute(total, n = 10) {
   const base = Math.floor(total / n);
@@ -87,17 +87,17 @@ function distribute(total, n = 10) {
 
 function determineRates(scenario, mode) {
   let base;
-  if (scenario === "HighFee") base = { exec: 0.83, pend: 0.10, fail: 0.07 };
-  else if (scenario === "Congested") base = { exec: 0.75, pend: 0.15, fail: 0.10 };
+  if (scenario === "HighFee") base = { exec: 0.82, pend: 0.10, fail: 0.08 };
+  else if (scenario === "Congested") base = { exec: 0.74, pend: 0.17, fail: 0.09 };
   else base = { exec: 0.93, pend: 0.05, fail: 0.02 };
 
   if (mode === "AOT") {
     base.exec = Math.min(base.exec + 0.05, 0.99);
     base.pend = Math.max(base.pend * 0.5, 0.005);
-    base.fail = Math.max(base.fail * 0.5, 0.002);
+    base.fail = Math.max(base.fail * 0.6, 0.002);
   } else {
     base.exec = Math.max(base.exec - 0.02, 0.7);
-    base.pend = base.pend * 1.3;
+    base.pend = base.pend * 1.25;
     base.fail = base.fail * 1.5;
   }
   const sum = base.exec + base.pend + base.fail;
@@ -136,16 +136,33 @@ startBtn.onclick = async () => {
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
 
+  let executedSum = 0, pendingSum = 0, failSum = 0;
+
   for (let i = 0; i < 10; i++) {
     const slot = document.getElementById(`slot-${i + 1}`);
     slot.classList.add("active");
-
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    const tx = randomNoise(perGate[i]);
-    const e = Math.max(0, Math.round(tx * rates.exec));
-    const p = Math.max(0, Math.round(tx * rates.pend));
-    const f = Math.max(0, tx - e - p);
+    let tx = randomNoise(perGate[i]);
+    if (i === 9) tx = totalTX - (executedSum + pendingSum + failSum); // slot cuối bù tổng
+
+    let e = Math.round(tx * rates.exec);
+    let p = Math.round(tx * rates.pend);
+    let f = tx - e - p;
+    if (f < 0) f = 0;
+
+    // Nếu gần slot cuối và tổng bị lệch, điều chỉnh lại
+    if (i === 9) {
+      const totalCheck = executedSum + pendingSum + failSum + e + p + f;
+      if (totalCheck !== totalTX) {
+        const diff = totalTX - totalCheck;
+        e += diff; // bù sai số vào executed
+      }
+    }
+
+    executedSum += e;
+    pendingSum += p;
+    failSum += f;
 
     slot.querySelector(".exec").textContent = e;
     slot.querySelector(".pend").textContent = p;
@@ -177,7 +194,7 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// === So sánh popup ===
+// === Compare Popup ===
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
 
