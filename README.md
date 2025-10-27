@@ -160,12 +160,12 @@ Raiku SlotScope không chỉ là một công cụ mô phỏng
 
 ---
 
-* Built with  
+* Xây dựng
   - HTML / CSS / JavaScript  
   - Chart.js for visualization  
   - Raiku deterministic logic model (AOT vs JIT)  
 
 ---
 
-* Author  
+* Tác giả  
   >Pakgiin — Solana & Raiku ecosystem contributor<
