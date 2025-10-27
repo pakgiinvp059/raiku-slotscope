@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.4.1 — Fixed Compare Chart Frame ===
+// === Raiku SlotScope v7.4.1-Cumulative — Gate Adds Up TX Over Multiple Runs ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -107,7 +107,7 @@ function gasForExec(mode) {
 // === Reset ===
 resetBtn.onclick = () => location.reload();
 
-// === Simulation ===
+// === Simulation (Gate cumulative update) ===
 startBtn.onclick = async () => {
   if (running) return;
   running = true;
@@ -135,14 +135,27 @@ startBtn.onclick = async () => {
     let f = tx - e - p;
     if (f < 0) f = 0;
 
-    executedSum += e; pendingSum += p; failSum += f;
-    slot.querySelector(".exec").textContent = e;
-    slot.querySelector(".pend").textContent = p;
-    slot.querySelector(".fail").textContent = f;
+    executedSum += e;
+    pendingSum += p;
+    failSum += f;
 
-    txChart.data.datasets[0].data[i] = e;
-    txChart.data.datasets[1].data[i] = p;
-    txChart.data.datasets[2].data[i] = f;
+    // ✅ cộng dồn vào gate (thay vì ghi đè)
+    const prevE = parseInt(slot.querySelector(".exec").textContent);
+    const prevP = parseInt(slot.querySelector(".pend").textContent);
+    const prevF = parseInt(slot.querySelector(".fail").textContent);
+
+    const newE = prevE + e;
+    const newP = prevP + p;
+    const newF = prevF + f;
+
+    slot.querySelector(".exec").textContent = newE;
+    slot.querySelector(".pend").textContent = newP;
+    slot.querySelector(".fail").textContent = newF;
+
+    // cập nhật biểu đồ
+    txChart.data.datasets[0].data[i] = newE;
+    txChart.data.datasets[1].data[i] = newP;
+    txChart.data.datasets[2].data[i] = newF;
 
     const gasPer = gasForExec(mode);
     const totalGas = +(gasPer * e).toFixed(6);
@@ -166,16 +179,14 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// === Compare Popup (fixed chart size) ===
+// === Compare Popup (giữ nguyên) ===
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
-
   const popup = document.createElement("div");
   popup.className = "popup-compare";
   const execDiff = ((cumulative.AOT.exec - cumulative.JIT.exec) / cumulative.JIT.exec * 100).toFixed(1);
   const gasDiff = ((cumulative.JIT.gas - cumulative.AOT.gas) / cumulative.JIT.gas * 100).toFixed(1);
   const failDiff = ((cumulative.JIT.fail - cumulative.AOT.fail) / cumulative.JIT.fail * 100).toFixed(1);
-
   popup.innerHTML = `
     <div class="popup-inner" style="overflow:hidden;">
       <div class="popup-header">
