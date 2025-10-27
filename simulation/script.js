@@ -1,4 +1,4 @@
-// === Raiku SlotScope v7.7 — Final Stable Version ===
+// === Raiku SlotScope v7.4.1 — Fixed Compare Chart Frame ===
 
 const slotsContainer = document.getElementById("slots");
 const startBtn = document.getElementById("startBtn");
@@ -120,9 +120,7 @@ startBtn.onclick = async () => {
 
   const rates = determineRates(scenario, mode);
   const perGate = distribute(totalTX, 10);
-
-  totalExec = totalPend = totalFail = 0;
-  totalGasAOT = totalGasJIT = 0;
+  let executedSum = 0, pendingSum = 0, failSum = 0;
 
   for (let i = 0; i < 10; i++) {
     const slot = document.getElementById(`slot-${i + 1}`);
@@ -130,13 +128,14 @@ startBtn.onclick = async () => {
     await new Promise(r => setTimeout(r, 300));
 
     let tx = randomNoise(perGate[i]);
-    if (i === 9) tx = totalTX - (totalExec + totalPend + totalFail);
+    if (i === 9) tx = totalTX - (executedSum + pendingSum + failSum);
 
     let e = Math.round(tx * rates.exec);
     let p = Math.round(tx * rates.pend);
     let f = tx - e - p;
     if (f < 0) f = 0;
 
+    executedSum += e; pendingSum += p; failSum += f;
     slot.querySelector(".exec").textContent = e;
     slot.querySelector(".pend").textContent = p;
     slot.querySelector(".fail").textContent = f;
@@ -149,22 +148,17 @@ startBtn.onclick = async () => {
     const totalGas = +(gasPer * e).toFixed(6);
 
     if (mode === "AOT") {
-      gasChart.data.datasets[0].data[i] = totalGas;
+      gasChart.data.datasets[0].data[i] += totalGas;
       totalGasAOT += totalGas;
       cumulative.AOT.exec += e; cumulative.AOT.pend += p; cumulative.AOT.fail += f; cumulative.AOT.gas += totalGas;
     } else {
-      gasChart.data.datasets[1].data[i] = totalGas;
+      gasChart.data.datasets[1].data[i] += totalGas;
       totalGasJIT += totalGas;
       cumulative.JIT.exec += e; cumulative.JIT.pend += p; cumulative.JIT.fail += f; cumulative.JIT.gas += totalGas;
     }
 
-    totalExec += e;
-    totalPend += p;
-    totalFail += f;
-
-    txChart.update();
-    gasChart.update();
-    updateStats();
+    totalExec += e; totalPend += p; totalFail += f;
+    txChart.update(); gasChart.update(); updateStats();
     slot.classList.remove("active");
   }
 
@@ -172,7 +166,7 @@ startBtn.onclick = async () => {
   startBtn.disabled = false;
 };
 
-// === Compare Popup ===
+// === Compare Popup (fixed chart size) ===
 compareBtn.onclick = () => {
   document.querySelectorAll(".popup-compare").forEach(p => p.remove());
 
@@ -183,17 +177,17 @@ compareBtn.onclick = () => {
   const failDiff = ((cumulative.JIT.fail - cumulative.AOT.fail) / cumulative.JIT.fail * 100).toFixed(1);
 
   popup.innerHTML = `
-    <div class="popup-inner">
+    <div class="popup-inner" style="overflow:hidden;">
       <div class="popup-header">
         <h3>📊 AOT vs JIT Performance Overview</h3>
-        <p>Deterministic Execution Impact Summary</p>
+        <p>Compare deterministic execution efficiency between AOT and JIT modes</p>
       </div>
-      <div class="compare-row" style="height:220px;">
-        <div class="compare-chart">
+      <div class="compare-row" style="height:240px; overflow:hidden;">
+        <div class="compare-chart" style="max-height:230px; overflow:hidden;">
           <strong>Transaction Breakdown</strong>
           <canvas id="compareChart"></canvas>
         </div>
-        <div class="compare-chart">
+        <div class="compare-chart" style="max-height:230px; overflow:hidden;">
           <strong>Gas Consumption</strong>
           <canvas id="gasCompare"></canvas>
         </div>
@@ -201,7 +195,7 @@ compareBtn.onclick = () => {
       <div class="summary-box">
         ✅ <b>AOT executed</b> ${execDiff}% more transactions<br>
         💧 <b>Gas saved</b> ${gasDiff}% compared to JIT<br>
-        ⚠️ <b>Failures reduced</b> by ${failDiff}% through deterministic scheduling
+        ⚠️ <b>Failures reduced</b> by ${failDiff}% with deterministic scheduling
       </div>
       <button class="closePopup">✖ Close</button>
     </div>`;
@@ -218,7 +212,12 @@ compareBtn.onclick = () => {
         { label: "JIT", backgroundColor: "#2979ff", data: [cumulative.JIT.exec, cumulative.JIT.pend, cumulative.JIT.fail] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: "top" } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { position: "top" } },
+      animation: false
+    }
   });
 
   const ctx2 = document.getElementById("gasCompare").getContext("2d");
@@ -230,7 +229,11 @@ compareBtn.onclick = () => {
         { label: "Gas Used (SOL)", backgroundColor: ["#00c853", "#2979ff"], data: [cumulative.AOT.gas, cumulative.JIT.gas] }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: true }
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: false
+    }
   });
 };
 
